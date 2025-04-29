@@ -1,115 +1,155 @@
 package com.example.foodtap.feature.camera
 
+import android.view.ViewGroup
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.foodtap.ui.theme.Main
+import com.example.foodtap.feature.ocr.OcrAnalyzer
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import kotlinx.coroutines.delay
+import java.util.concurrent.Executors
+import java.util.regex.Pattern
 
 @Composable
-fun CameraScreen(
-    navController: NavController,
-    viewModel: CameraViewModel = viewModel()
-) {
-    val context = LocalContext.current
+fun CameraScreen(navController: NavController) {
+    val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val executor = remember { Executors.newSingleThreadExecutor() }
+    val recognizer = remember {
+        TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
+    }
+    val ocrTextList = remember { mutableStateListOf<String>() }
 
-    val previewView = remember {
-        viewModel.initCamera(context, lifecycleOwner)
+    var nutritionText by remember { mutableStateOf("") }
+    var expiryText by remember { mutableStateOf("") }
+    var showDialog by remember { mutableStateOf(false) }
+    var isScanning by remember { mutableStateOf(true) }
+
+    val analyzer = remember {
+        OcrAnalyzer(recognizer, executor) { result ->
+            if (result.isNotBlank() && isScanning) {
+                val lines = result.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+                ocrTextList.addAll(lines)
+            }
+        }.create()
     }
 
-    CameraContent(
-        previewView = previewView,
-        onCapture = {
-            viewModel.takePhoto { bitmap ->
-                bitmap?.let {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("bitmap", it)
-                    navController.navigate("ocr")
+    val previewView = remember {
+        PreviewView(ctx).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+        }
+    }
+
+    LaunchedEffect(previewView) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+        val cameraProvider = cameraProviderFuture.get()
+        val preview = Preview.Builder().build().also {
+            it.setSurfaceProvider(previewView.surfaceProvider)
+        }
+        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+        try {
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, analyzer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    LaunchedEffect(isScanning) {
+        if (isScanning) {
+            delay(3000L)
+
+            val distinctText = ocrTextList.distinct()
+            val nutrition = distinctText.joinToString("\n")
+            val expiry = distinctText.filter { containsDate(it) }.joinToString("\n")
+
+            if (nutrition.isNotBlank() || expiry.isNotBlank()) {
+                nutritionText = nutrition
+                expiryText = expiry
+
+                //
+
+                showDialog = true
+                isScanning = false
+            }
+            ocrTextList.clear()
+        }
+    }
+
+    AndroidView(
+        factory = { previewView },
+        modifier = Modifier.fillMaxSize()
+    )
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                isScanning = true
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = {
+                        //
+                    }) {
+                        Text("다시 듣기")
+                    }
+                    TextButton(onClick = {
+                        showDialog = false
+                        isScanning = true
+                    }) {
+                        Text("확인")
+                    }
+                }
+            },
+            title = { Text("식품 정보") },
+            text = {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "소비기한:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = if (expiryText.isNotBlank()) expiryText else "없음",
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    Text(
+                        text = "알레르기:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = if (nutritionText.isNotBlank()) nutritionText else "없음"
+                    )
                 }
             }
-        }
-    )
+        )
+    }
 }
 
-@Composable
-fun CameraContent(
-    previewView: PreviewView,
-    onCapture: () -> Unit
-) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-
-            ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(width = 330.dp, height = 72.dp)
-                    .border(2.dp, Color.White, RoundedCornerShape(16.dp))
-                    .background(Main, RoundedCornerShape(16.dp))
-            ) {
-                Text(
-                    text = "식품 정보를 촬영하세요.",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
-            }
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 80.dp),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            IconButton(
-                onClick = onCapture,
-                modifier = Modifier
-                    .size(96.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), MaterialTheme.shapes.large)
-                    .semantics { contentDescription = "촬영 버튼" }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(56.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "촬영",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+fun containsDate(text: String): Boolean {
+    val datePatterns = listOf(
+        "\\d{4}[./-]\\d{1,2}[./-]\\d{1,2}",
+        "\\d{2}[./-]\\d{1,2}[./-]\\d{1,2}"
+    )
+    return datePatterns.any { pattern ->
+        Pattern.compile(pattern).matcher(text).find()
     }
 }
