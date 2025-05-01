@@ -72,5 +72,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
 
-
+    // init
+    implementation(libs.androidx.activity.ktx)  // 최신 버전 확인
+    implementation(libs.androidx.activity.compose.v150) // Compose와 연동할 경우 필요
 }

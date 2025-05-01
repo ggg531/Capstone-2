@@ -16,6 +16,7 @@ import com.example.foodtap.feature.ocr.OcrScreen
 import com.example.foodtap.feature.user.MyScreen
 import com.example.foodtap.feature.user.SetCriteriaScreen
 import com.example.foodtap.feature.user.SetUiScreen
+import com.example.foodtap.feature.init.InitScreen
 import com.example.foodtap.ui.BottomBar
 import com.example.foodtap.ui.TopBar
 
@@ -39,9 +40,10 @@ fun MainApp() {
     ) {  innerPadding->
         NavHost(
             navController = navController,
-            startDestination = "my",
+            startDestination = "init",  // test 용
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("init") { InitScreen(navController) }
             composable("signin") { SigninScreen(navController) }
             composable("camera") { CameraPermission(navController) }
             composable("my") { MyScreen(navController) }
