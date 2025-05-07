@@ -1,8 +1,10 @@
 package com.example.foodtap.api
 
+import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -27,3 +29,12 @@ interface GetApprovalService {
     @POST("/test")
     fun getApproval(@Body request: OcrRequest): Call<OcrResponse>
 }
+
+interface ClovaOcrService {
+    @POST("general")
+    fun sendOcrRequest(
+        @Body requestBody: RequestBody,
+        @Header("X-OCR-SECRET") secret: String = "WkJkVlhuT3lsVGFoSUZhZ1BhT3BZd3VmekxOY0p1T1c="
+    ): Call<ClovaOcrResponse>
+}
+
