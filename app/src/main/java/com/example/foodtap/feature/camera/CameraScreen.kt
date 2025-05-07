@@ -8,10 +8,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +39,6 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
-
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.foundation.layout.Spacer
@@ -52,6 +48,20 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import com.example.foodtap.ui.theme.Show
 
+// 외부 API로 OCR 결과 전송
+//suspend fun sendOcrResultToApi(ocrText: String): Boolean {
+//    return try {
+//        val response = withContext(Dispatchers.IO) {
+//            // Retrofit 또는 OkHttp를 통한 API 호출
+//            // 예: apiService.sendOcrResult(RequestBody(ocrText))
+//        }
+//        response.approval  // Boolean 필드 반환
+//    } catch (e: Exception) {
+//        e.printStackTrace()
+//        false
+//    }
+//}
+
 @Composable
 fun CameraScreen(navController: NavController, viewModel: CameraViewModel = viewModel()) {
     val context = LocalContext.current
@@ -60,9 +70,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val recognizer = remember { TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) }
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
+    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+
     val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
     val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
-    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+    val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
+    val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
 
     val analyzer = remember {
         OcrAnalyzer(recognizer, executor) { result ->
@@ -99,7 +112,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             e.printStackTrace()
         }
     }
-
+    
+    // OCR 결과 분석 및 UI 반영
     LaunchedEffect(isScanning) {
         if (isScanning) {
             delay(3000)
@@ -171,7 +185,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = if (expiryText.isNotBlank()) expiryText else "없음",
+                        text = identifiedDesc.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
@@ -180,7 +194,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = if (nutritionText.isNotBlank()) nutritionText else "없음"
+                        text = identifiedAllergy.toString().ifBlank { "없음" },
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
             },

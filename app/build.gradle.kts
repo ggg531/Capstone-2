@@ -74,4 +74,7 @@ dependencies {
     // ocr
     implementation(libs.text.recognition.korean)
 
+    // api
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
 }

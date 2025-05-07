@@ -66,7 +66,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             delay(500)
             speak("화면을 탭하여 보유 알레르기 성분을 음성으로 등록하세요", "starttap")
         }
-
+        /*
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
@@ -155,5 +155,6 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         tts.stop()
         tts.shutdown()
         speechRecognizer.destroy()
+    }*/
     }
 }

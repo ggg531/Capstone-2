@@ -5,6 +5,7 @@ import com.example.foodtap.api.allergy.TextRequest
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -26,4 +27,10 @@ interface GetUserIdService {
 interface AllergyKeywordService {
     @POST("/extract_keywords")
     fun extractKeywords(@Body request: TextRequest): KeywordResponse
+}
+
+interface GetApprovalService {
+    @Headers("Content-Type: application/json")
+    @POST("/test")
+    fun getApproval(@Body request: OcrRequest): Call<OcrResponse>
 }
