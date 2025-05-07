@@ -13,6 +13,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,11 +23,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
+import kotlinx.coroutines.delay
 
 @Composable
-fun MyScreen(navController: NavController) {
+fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
+    LaunchedEffect(Unit) {
+        delay(500)
+        viewModel.speak("마이 페이지입니다. 화면 상단에는 구매 식품에 대한 소비 기한 정보가 있고, 화면 하단에는 구매 기준을 변경하는 버튼이 있습니다.")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -44,7 +52,7 @@ fun MyScreen(navController: NavController) {
             color = Color.Black,
             modifier = Modifier.semantics { contentDescription = "마이 페이지" }
         )
-        Text(text = "사용자 설정 정보 표기...")
+        Text(text = "사용자 설정 정보 표기...") // 소비기한 관리
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -58,7 +66,10 @@ fun MyScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
             ) {
             Button(
-                onClick = { navController.navigate("setcri") },
+                onClick = {
+                    viewModel.stopSpeaking()
+                    navController.navigate("setcri")
+                },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Main),
                 modifier = Modifier.size(width = 360.dp, height = 72.dp)
@@ -75,7 +86,10 @@ fun MyScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(30.dp))
 
             Button(
-                onClick = { navController.navigate("setui") },
+                onClick = {
+                    viewModel.stopSpeaking()
+                    navController.navigate("setui")
+                },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Main),
                 modifier = Modifier.size(width = 360.dp, height = 72.dp)

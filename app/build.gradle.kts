@@ -61,6 +61,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.material.icons.extended)
 
+    // init
+    implementation (libs.retrofit)
+    implementation (libs.converter.gson)
+
     // camera
     implementation (libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
