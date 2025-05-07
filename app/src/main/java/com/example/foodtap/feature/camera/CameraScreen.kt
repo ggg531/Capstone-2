@@ -1,5 +1,6 @@
 package com.example.foodtap.feature.camera
 
+import android.util.Log
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
@@ -14,12 +15,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.example.foodtap.api.OcrRequest
+import com.example.foodtap.api.OcrResponse
+import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.feature.ocr.OcrAnalyzer
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Response
+import retrofit2.Callback
 import java.util.concurrent.Executors
 import java.util.regex.Pattern
+
+// 외부 API로 OCR 결과 전송
+//suspend fun sendOcrResultToApi(ocrText: String): Boolean {
+//    return try {
+//        val response = withContext(Dispatchers.IO) {
+//            // Retrofit 또는 OkHttp를 통한 API 호출
+//            // 예: apiService.sendOcrResult(RequestBody(ocrText))
+//        }
+//        response.approval  // Boolean 필드 반환
+//    } catch (e: Exception) {
+//        e.printStackTrace()
+//        false
+//    }
+//}
 
 @Composable
 fun CameraScreen(navController: NavController) {
@@ -71,8 +94,12 @@ fun CameraScreen(navController: NavController) {
         }
     }
 
+    var identifiedAllergy by remember { mutableStateOf<List<String>>(emptyList()) }
+    var identifiedDesc by remember { mutableStateOf("") }
+    
+    // OCR 결과 분석 및 UI 반영
     LaunchedEffect(isScanning) {
-        if (isScanning) {
+        while (isScanning) {
             delay(3000L)
 
             val distinctText = ocrTextList.distinct()
@@ -80,17 +107,69 @@ fun CameraScreen(navController: NavController) {
             val expiry = distinctText.filter { containsDate(it) }.joinToString("\n")
 
             if (nutrition.isNotBlank() || expiry.isNotBlank()) {
-                nutritionText = nutrition
-                expiryText = expiry
+                val fullText = "$nutrition\n$expiry"
 
-                //
+                // 외부 API를 호출하여 OCR 결과를 전송하고 허가 여부 결정
+                val request = OcrRequest(ocr = fullText)
 
-                showDialog = true
-                isScanning = false
+
+                RetrofitClient.get_approval.getApproval(request).enqueue(object : Callback<OcrResponse> {
+                    override fun onResponse(call: Call<OcrResponse>, response: Response<OcrResponse>) {
+                        if (response.isSuccessful) {
+                            val approval = response.body()?.approval == true
+                            val allergy = response.body()?.allergy
+                            val desc = response.body()?.desc
+
+                            Log.d("API", "approval: $approval")
+                            Log.d("API", "allergy: $allergy")
+                            Log.d("API", "desc: $desc")
+
+                            if (approval && (allergy != null && desc != null)) {
+                                identifiedAllergy = allergy
+                                identifiedDesc = desc
+                                nutritionText = nutrition
+                                expiryText = expiry
+                                showDialog = true
+                                isScanning = false
+                            }
+
+                        } else {
+                            Log.e("API", "서버 응답 오류: ${response.code()}")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<OcrResponse>, t: Throwable) {
+                        Log.e("API", "요청 실패: ${t.message}")
+                    }
+                })
+
+
             }
+
             ocrTextList.clear()
         }
     }
+
+//    LaunchedEffect(isScanning) {
+//        if (isScanning) {
+//            delay(3000L)
+//
+//            val distinctText = ocrTextList.distinct()
+//            val nutrition = distinctText.joinToString("\n")
+//            val expiry = distinctText.filter { containsDate(it) }.joinToString("\n")
+//
+//            if (nutrition.isNotBlank() || expiry.isNotBlank()) {
+//                nutritionText = nutrition
+//                expiryText = expiry
+//
+//                //
+//
+//                showDialog = true
+//                isScanning = false
+//            }
+//            ocrTextList.clear()
+//        }
+//    }
 
     AndroidView(
         factory = { previewView },
@@ -127,7 +206,7 @@ fun CameraScreen(navController: NavController) {
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = if (expiryText.isNotBlank()) expiryText else "없음",
+                        text = expiryText.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
@@ -135,9 +214,18 @@ fun CameraScreen(navController: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
+//                    Text(
+//                        text = nutritionText.ifBlank { "없음" }
+//                    )
                     Text(
-                        text = if (nutritionText.isNotBlank()) nutritionText else "없음"
+                        text = identifiedAllergy.toString().ifBlank { "없음" }
                     )
+                    Text(
+                        text = identifiedDesc.ifBlank { "없음" }
+                    )
+//                    Text(
+//                        text = nutritionText.ifBlank { "없음" }
+//                    )
                 }
             }
         )

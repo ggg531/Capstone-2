@@ -12,11 +12,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.foodtap.api.OcrRequest
 import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.api.UserData
 import com.example.foodtap.ui.theme.FoodTapTheme
 import com.example.foodtap.util.FileManager
 import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +78,7 @@ class MainActivity : ComponentActivity() {
 //                }
 //            })
 //        }
+
 
 
         enableEdgeToEdge()
