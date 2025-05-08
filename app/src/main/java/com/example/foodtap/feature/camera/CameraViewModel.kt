@@ -20,12 +20,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
 
     private val _ocrTextList = mutableListOf<String>()
 
-    private val _nutritionText = MutableStateFlow("")
-    val nutritionText: StateFlow<String> = _nutritionText
-
-    private val _expiryText = MutableStateFlow("")
-    val expiryText: StateFlow<String> = _expiryText
-
     private val _identifiedAllergy = MutableStateFlow<List<String>>(emptyList())
     val identifiedAllergy: StateFlow<List<String>> = _identifiedAllergy
 
@@ -92,8 +86,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
                         if (approval && (allergy != null && desc != null)) {
                             _identifiedAllergy.value = allergy
                             _identifiedDesc.value = desc
-                            _nutritionText.value = nutrition
-                            _expiryText.value = expiry
                             _showDialog.value = true
                             _isScanning.value = false
                         }

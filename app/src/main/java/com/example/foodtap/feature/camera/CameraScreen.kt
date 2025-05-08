@@ -74,9 +74,6 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
-
-    val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
-    val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
 
@@ -166,6 +163,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         }
 
         AlertDialog(
+            //containerColor = if(identifiedAllergy == userAllergy || identifiedDesc == userDesc) Unsafe else Safe,
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -225,9 +223,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (expiryText.isNotBlank()) expiryText else "인식되지 않았습니다.")
+                            append(if (identifiedDesc.isNotBlank()) identifiedDesc else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
-                            append(if (nutritionText.isNotBlank()) nutritionText else "인식되지 않았습니다.")
+                            //append(if (identifiedAllergy.isNotBlank()) identifiedAllergy else "인식되지 않았습니다.")
                         }
                         viewModel.speak(listen)
                     },
