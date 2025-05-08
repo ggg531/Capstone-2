@@ -25,18 +25,6 @@ object RetrofitClient {
         retrofit.create(GetUserIdService::class.java)
     }
 
-/*
-    val allergy_keyword_instance: AllergyKeywordService by lazy {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("$BASE_URL")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        retrofit.create(AllergyKeywordService::class.java)
-    }
-
- */
-
     val get_approval: GetApprovalService by lazy {
         val retrofit = Retrofit.Builder()
             .baseUrl(AI_BASE_URL)

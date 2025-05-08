@@ -49,13 +49,13 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable {/*
+            .clickable {
                 if (!isListening) {
                     viewModel.startListening()
                 } else {
                     viewModel.stopListening()
                     viewModel.tapShowDialog(true)
-                }*/
+                }
             },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -135,7 +135,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 if (hasResult) {
                     Button(
                         onClick = {
-                            //viewModel.confirmResult()
+                            viewModel.confirmResult()
                             navController.navigate("camera")
                         },
                         shape = RoundedCornerShape(16.dp),
@@ -153,8 +153,9 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             },
             dismissButton = {
                 Button(
-                    onClick = { //viewModel.resetResult()
-                         },
+                    onClick = {
+                        viewModel.resetResult()
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
                     modifier = Modifier.size(width = 360.dp, height = 72.dp)

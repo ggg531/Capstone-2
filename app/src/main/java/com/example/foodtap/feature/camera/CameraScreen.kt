@@ -47,6 +47,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import com.example.foodtap.ui.theme.Show
+import com.example.foodtap.ui.theme.Unsafe
+import com.example.foodtap.ui.theme.Safe
+
 
 // 외부 API로 OCR 결과 전송
 //suspend fun sendOcrResultToApi(ocrText: String): Boolean {

@@ -8,17 +8,13 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import androidx.lifecycle.AndroidViewModel
-import com.example.foodtap.api.RetrofitClient
-import com.example.foodtap.api.allergy.TextRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
-import android.util.Log
 
 class InitViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
     private val _isListening = MutableStateFlow(false)
@@ -66,31 +62,15 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             delay(500)
             speak("화면을 탭하여 보유 알레르기 성분을 음성으로 등록하세요", "starttap")
         }
-        /*
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {}
-            override fun onBeginningOfSpeech() {}
-
             override fun onResults(results: Bundle?) {
-                val result = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
+                val result =
+                    results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                        ?: ""
                 _rawSttText.value = result
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val response = RetrofitClient.allergy_keyword_instance.extractKeywords(TextRequest(result))
-                        withContext(Dispatchers.Main) {
-                            if (response.keywords.isNotEmpty()) {
-                                _allergySttText.value = response.keywords.joinToString(", ")
-                            } else {
-                                _allergySttText.value = ""
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("RetrofitError", "서버 연결 실패: ${e.message}")
-                        withContext(Dispatchers.Main) {
-                            _allergySttText.value = ""
-                        }
-                    }
-                }
+                _allergySttText.value = result // 키워드 형식으로 추출
+                _isListening.value = false
+                _showDialog.value = true
             }
 
             override fun onError(error: Int) {
@@ -103,6 +83,8 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                 _showDialog.value = true
             }
 
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onPartialResults(partialResults: Bundle?) {}
@@ -155,6 +137,5 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         tts.stop()
         tts.shutdown()
         speechRecognizer.destroy()
-    }*/
     }
 }
