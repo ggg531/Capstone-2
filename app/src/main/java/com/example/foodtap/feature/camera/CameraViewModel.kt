@@ -65,6 +65,79 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
+    fun clovaAnalyze(inferTextLines: String) {
+        if (_isScanning.value) {  // 스캔 중일 때만 처리
+            // 받은 텍스트 라인들을 CameraScreen의 상태에 반영
+            _ocrTextList.clear()
+            _ocrTextList.addAll(listOf(inferTextLines))
+
+            // OCR 결과를 바탕으로 필요한 정보를 추출 (containsDate 함수 필요)
+            val distinctText = _ocrTextList.distinct() // 필요한 경우 중복 제거
+            val nutrition = distinctText.joinToString("\n") // 예시: 모든 라인을 합침
+            val expiry = distinctText.filter { containsDate(it) }.joinToString("\n") // 예시: containsDate 함수 필요
+
+            if (nutrition.isNotBlank() || expiry.isNotBlank()) {
+                val fullText = "$nutrition\n$expiry"
+
+
+                Log.d("CameraScreen", "Triggering external approval API call with: $fullText")
+
+                // 외부 API 호출 및 결과 처리
+                val request = OcrRequest(ocr = fullText) // OcrRequest 데이터 클래스 필요
+                RetrofitClient.get_approval.getApproval(request).enqueue(object : Callback<OcrResponse> {
+                    override fun onResponse(call: Call<OcrResponse>, response: Response<OcrResponse>) {
+                        if (response.isSuccessful) {
+                            val approval = response.body()?.approval == true
+                            val allergy = response.body()?.allergy
+                            val desc = response.body()?.desc
+
+                            Log.d("API", "approval: $approval, allergy: $allergy, desc: $desc")
+
+                            // 외부 API 응답 결과에 따라 UI 상태 업데이트
+                            if (approval &&  desc != null) {
+                                if (allergy != null) {
+                                    _identifiedAllergy.value = allergy
+                                }
+                                _identifiedDesc.value = desc
+                                // nutritionText와 expiryText는 OCR 결과에서 이미 추출했으므로 여기서 설정
+                                _nutritionText.value = nutrition
+                                _expiryText.value = expiry
+                                _showDialog.value = true // 다이얼로그 표시
+                                _isScanning.value = false // 스캔 중지
+                            } else {
+                                // 승인되지 않거나 결과가 불완전한 경우 처리
+                                Log.d("API", "Approval denied or incomplete result.")
+                                // 필요에 따라 사용자에게 알리거나 스캔을 계속할 수 있습니다.
+                            }
+
+                        } else {
+                            Log.e("API", "서버 응답 오류: ${response.code()}")
+                            // 오류 처리 (사용자에게 알림 등)
+                        }
+                        // API 호출 완료 후 필요한 상태 정리 (예: ocrTextList.clear() 등)
+                        // ocrTextList.clear() // 다음 프레임의 결과를 받기 위해 클리어
+                    }
+
+                    override fun onFailure(call: Call<OcrResponse>, t: Throwable) {
+                        Log.e("API", "요청 실패: ${t.message}", t)
+                        // 오류 처리 (사용자에게 알림 등)
+                        // API 호출 완료 후 필요한 상태 정리
+                        // ocrTextList.clear()
+                    }
+                })
+
+                // 주의: API 호출 후 ocrTextList를 바로 clear하면 다음 프레임 결과와 섞이지 않지만,
+                // 여러 프레임에 걸친 텍스트를 모아서 분석해야 한다면 clear 시점을 조절해야 합니다.
+
+            } else {
+                // 추출된 영양 정보나 유통기한이 없는 경우
+                Log.d("CameraScreen", "No significant text found for processing.")
+                // 필요에 따라 사용자에게 알리거나 스캔을 계속합니다.
+                // ocrTextList.clear() // 다음 프레임 결과를 위해 클리어
+            }
+        }
+    }
+
     fun processResults() {
         val distinctText = _ocrTextList.distinct()
         val nutrition = distinctText.joinToString("\n")

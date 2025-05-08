@@ -77,4 +77,5 @@ dependencies {
     // api
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
+    implementation(libs.okhttp)
 }
