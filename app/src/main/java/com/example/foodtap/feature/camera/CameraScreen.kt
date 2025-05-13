@@ -224,7 +224,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedDesc.ifBlank { "없음" },
+                        text = identifiedExpiration.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
@@ -234,6 +234,15 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     )
                     Text(
                         text = identifiedAllergy.toString().ifBlank { "없음" },
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    Text(
+                        text = "설명:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = identifiedDesc.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
