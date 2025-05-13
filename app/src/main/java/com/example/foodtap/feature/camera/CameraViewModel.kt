@@ -108,8 +108,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         _ocrTextList.clear()
     }
 
-    private val userDesc = 5
-    private val userAllergy = listOf("우유", "대두")
+
 
     fun descDday(): Int? {
         if (identifiedDesc.value.isBlank()) return null
