@@ -1,26 +1,25 @@
+// TODO: 유통기한도 GPT로 처리하기
+// TODO: 인식 안 된 경우 공백으로 처리
+
+
 package com.example.foodtap.feature.camera
 
 import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.util.Log
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,65 +32,74 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.foodtap.feature.ocr.OcrAnalyzer
+import com.example.foodtap.api.OcrRequest
+import com.example.foodtap.api.OcrResponse
+import com.example.foodtap.api.RetrofitClient
+import com.example.foodtap.feature.ocr.ClovaOcrAnalyzer
 import com.example.foodtap.ui.theme.Main
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
-import kotlinx.coroutines.delay
-import java.util.concurrent.Executors
-import android.os.VibrationEffect
-import android.os.Vibrator
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.example.foodtap.ui.theme.Show
-import com.example.foodtap.ui.theme.Unsafe
-import com.example.foodtap.ui.theme.Safe
-
+import retrofit2.Call
+import retrofit2.Response
+import retrofit2.Callback
+import java.util.concurrent.Executors
+import java.util.regex.Pattern
 
 @Composable
 fun CameraScreen(navController: NavController, viewModel: CameraViewModel = viewModel()) {
-    val context = LocalContext.current
+    val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val executor = remember { Executors.newSingleThreadExecutor() }
-    val recognizer = remember { TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) }
+    val executor = remember { Executors.newSingleThreadExecutor() } // 이미지 분석을 위한 백그라운드 Executor
+    val apiCallExecutor = remember { Executors.newSingleThreadExecutor() } // API 호출을 위한 별도 Executor (필요시, Retrofit은 자체 스레드 풀 사용)
+
+    val ocrTextList = remember { mutableStateListOf<String>() }
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+
+    val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
+    val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
+    val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
 
-    val analyzer = remember {
-        OcrAnalyzer(recognizer, executor) { result ->
-            if (result.isNotBlank() && isScanning) {
-                viewModel.addOcrResult(result)
-            }
-        }.create()
+    // Clova OCR API 호출을 담당하는 Analyzer 인스턴스 생성
+    // ClovaOcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
+    val clovaOcrAnalyzer = remember {
+        ClovaOcrAnalyzer(executor = executor) { inferTextLines ->
+            // 이 람다 함수는 ClovaOcrAnalyzer에서 API 응답을 받은 후 메인 스레드에서 호출됨
+            // inferTextLines는 Clova API에서 인식된 텍스트 라인들의 String임
+            Log.d("CameraScreen", "Received OCR lines from Analyzer: $inferTextLines")
+
+            viewModel.clovaAnalyze(inferTextLines)
+        }
     }
 
+    // ImageAnalysis 유스케이스 설정 및 분석기 연결
+    val imageAnalysis = remember {
+        ImageAnalysis.Builder()
+            // .setTargetResolution(Size(640, 480)) // 원하는 해상도 설정 (API 요구사항 고려)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // 가장 최신 프레임만 분석
+            .build()
+            .also {
+                // Analyzer와 실행할 Executor 연결
+                it.setAnalyzer(executor, clovaOcrAnalyzer)
+            }
+    }
+
+
     val previewView = remember {
-        PreviewView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        PreviewView(ctx).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
             scaleType = PreviewView.ScaleType.FILL_CENTER
         }
     }
 
-    LaunchedEffect(Unit) {
-        delay(500)
-        viewModel.speak("식품 정보를 촬영하세요.")
-    }
-
-    LaunchedEffect(previewView) {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+    // 카메라 미리보기 및 이미지 분석 유스케이스 바인딩
+    LaunchedEffect(previewView, imageAnalysis) { // imageAnalysis가 변경될 때 재실행
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
         val cameraProvider = cameraProviderFuture.get()
         val preview = Preview.Builder().build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
@@ -100,17 +108,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
 
         try {
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, analyzer)
+            // Preview 유스케이스와 ImageAnalysis 유스케이스를 함께 바인딩
+            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    // OCR 결과 분석 및 UI 반영
-    LaunchedEffect(isScanning) {
-        if (isScanning) {
-            delay(3000)
-            viewModel.processResults()
         }
     }
 
@@ -122,9 +123,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 30.dp, bottom = 30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+            .padding(top = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
 
     ) {
         Box(
@@ -141,60 +141,22 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 color = Color.Black
             )
         }
-
-        Button(
-            onClick = {
-                viewModel.stopSpeaking()
-                navController.navigate("my") {
-                    //
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Main),
-            modifier = Modifier
-                .size(width = 330.dp, height = 100.dp)
-                .border(3.dp, Color.White, RoundedCornerShape(16.dp))
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "마이 페이지",
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }
-            )
-        }
     }
 
     if (showDialog) {
-        //val isSafe = viewModel.descFiltering() && viewModel.allergyFiltering()
-        val isSafe = viewModel.allergyFiltering()
-
         LaunchedEffect(showDialog) {
-            val vibrator = context.getSystemService(Vibrator::class.java)
-
+            val haptic = ctx.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val vibrationEffect = if (isSafe) {
+                haptic?.vibrate(
                     VibrationEffect.createOneShot(150, 200)
-                } else {
-                    VibrationEffect.createWaveform(longArrayOf(0, 200, 50, 200), intArrayOf(0, 255, 0, 255), -1)
-                }
-                vibrator?.vibrate(vibrationEffect)
+                )
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(if (isSafe) 150 else 200)
+                haptic?.vibrate(150)
             }
         }
 
         AlertDialog(
-            containerColor = if (isSafe) Safe else Unsafe,
-
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -217,7 +179,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedDesc.ifBlank { "없음" },
+                        text = identifiedExpiration.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
@@ -227,6 +189,15 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     )
                     Text(
                         text = identifiedAllergy.toString().ifBlank { "없음" },
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    Text(
+                        text = "설명:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = identifiedDesc.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
@@ -254,9 +225,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedDesc.isNotBlank()) "$identifiedDesc 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) expiryText else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
-                            append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedAllergy.isNotEmpty()) nutritionText else "인식되지 않았습니다.")
                         }
                         viewModel.speak(listen)
                     },
@@ -274,5 +245,70 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             },
             onDismissRequest = {}
         )
+    }
+
+//    if (showDialog) {
+//        AlertDialog(
+//            onDismissRequest = {
+//                viewModel.showDialog = false
+//                viewModel.isScanning = true
+//            },
+//            confirmButton = {
+//                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    TextButton(onClick = {
+//                        //
+//                    }) {
+//                        Text("다시 듣기")
+//                    }
+//                    TextButton(onClick = {
+//                        showDialog = false
+//                        isScanning = true
+//                    }) {
+//                        Text("확인")
+//                    }
+//                }
+//            },
+//            title = { Text("식품 정보") },
+//            text = {
+//                Column(modifier = Modifier.padding(16.dp)) {
+//                    Text(
+//                        text = "소비기한:",
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        modifier = Modifier.padding(bottom = 4.dp)
+//                    )
+////                    Text(
+////                        text = expiryText.ifBlank { "없음" },
+////                        modifier = Modifier.padding(bottom = 12.dp)
+////                    )
+//                    Text(
+//                        text = "알레르기:",
+//                        style = MaterialTheme.typography.bodyMedium,
+//                        modifier = Modifier.padding(bottom = 4.dp)
+//                    )
+////                    Text(
+////                        text = nutritionText.ifBlank { "없음" }
+////                    )
+//                    Text(
+//                        text = identifiedAllergy.toString().ifBlank { "없음" }
+//                    )
+//                    Text(
+//                        text = identifiedDesc.ifBlank { "없음" }
+//                    )
+////                    Text(
+////                        text = nutritionText.ifBlank { "없음" }
+////                    )
+//                }
+//            }
+//        )
+//    }
+}
+
+fun containsDate(text: String): Boolean {
+    val datePatterns = listOf(
+        "\\d{4}[./-]\\d{1,2}[./-]\\d{1,2}",
+        "\\d{2}[./-]\\d{1,2}[./-]\\d{1,2}"
+    )
+    return datePatterns.any { pattern ->
+        Pattern.compile(pattern).matcher(text).find()
     }
 }
