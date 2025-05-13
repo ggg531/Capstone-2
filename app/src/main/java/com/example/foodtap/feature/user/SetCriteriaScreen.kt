@@ -67,7 +67,8 @@ fun SetCriteriaScreen(navController: NavController) {
                 modifier = Modifier.size(width = 360.dp, height = 72.dp)
             ) {
                 Text(
-                    text = "-일 이상을 선호합니다.",
+                    //text = "$userDesc 일 이상을 선호합니다.",
+                    text = "userDesc 일",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White,
@@ -92,13 +93,14 @@ fun SetCriteriaScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             Button(
-                onClick = { navController.navigate("setaller") },
+                onClick = { navController.navigate("init") },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Main),
                 modifier = Modifier.size(width = 360.dp, height = 72.dp)
             ) {
                 Text(
-                    text = "-을(를) 제외합니다.",
+                    //text = "$userAllergy을(를) 제외합니다.",
+                    text = "userAllergy",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White,

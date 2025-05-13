@@ -87,14 +87,14 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
         val hasResult = allergySttText.isNotBlank()
 
         LaunchedEffect(showDialog) {
-            val haptic = context.getSystemService(Vibrator::class.java)
+            val vibrator = context.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                haptic?.vibrate(
+                vibrator?.vibrate(
                     VibrationEffect.createOneShot(150, 200)
                 )
             } else {
                 @Suppress("DEPRECATION")
-                haptic?.vibrate(150)
+                vibrator?.vibrate(150)
             }
         }
 
@@ -136,7 +136,9 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                     Button(
                         onClick = {
                             viewModel.confirmResult()
-                            navController.navigate("camera")
+                            navController.navigate("camera") {
+                                popUpTo("init") { inclusive = true }
+                            }
                         },
                         shape = RoundedCornerShape(16.dp),
                         colors =  ButtonDefaults.buttonColors(containerColor = Main),

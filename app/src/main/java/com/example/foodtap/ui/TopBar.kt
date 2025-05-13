@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.foodtap.feature.user.MyViewModel
 import com.example.foodtap.ui.theme.Main
 
 @Composable
@@ -48,7 +49,10 @@ fun TopBar(navController: NavController) {
                 tint = Color.White,
                 modifier = Modifier
                     .size(32.dp)
-                    .clickable { navController.popBackStack() }
+                    .clickable {
+                        //viewModel.stopSpeaking()
+                        navController.popBackStack()
+                    }
                     .semantics { contentDescription = "이전 페이지로 이동" }
             )
             Spacer(modifier = Modifier.width(8.dp))

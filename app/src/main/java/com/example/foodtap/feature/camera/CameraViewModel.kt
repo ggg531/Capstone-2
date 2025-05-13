@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Locale
 
 class CameraViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
@@ -25,6 +27,9 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
 
     private val _identifiedDesc = MutableStateFlow("")
     val identifiedDesc: StateFlow<String> = _identifiedDesc
+
+    private val _dDayDesc = MutableStateFlow<Int?>(null)
+    val dDayDesc: StateFlow<Int?> = _dDayDesc
 
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
@@ -101,6 +106,40 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
             })
         }
         _ocrTextList.clear()
+    }
+
+    private val userDesc = 5
+    private val userAllergy = listOf("우유", "대두")
+
+    fun descDday(): Int? {
+        if (identifiedDesc.value.isBlank()) return null
+
+        return try {
+            val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+            val endDate = dateFormat.parse(identifiedDesc.value)
+            val startDate = java.util.Date()
+
+            val dDay = ((endDate.time - startDate.time) / (24 * 60 * 60 * 1000)).toInt()
+            _dDayDesc.value = dDay
+            dDay
+        } catch (e: Exception) {
+            Log.e("descDday", "날짜 파싱 실패: ${e.message}")
+            null
+        }
+    }
+
+    fun descFiltering(): Boolean { // userDesc
+        if (identifiedDesc.value.isBlank()) return true
+
+        val dDay = descDday()
+        return dDay != null && dDay > userDesc
+    }
+
+
+    fun allergyFiltering(): Boolean { // userAllergy
+        if (identifiedAllergy.value.isEmpty()) return true
+
+        return identifiedAllergy.value.none { userAllergy.contains(it) }
     }
 
     fun resetScan() {

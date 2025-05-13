@@ -68,7 +68,9 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             Button(
                 onClick = {
                     viewModel.stopSpeaking()
-                    navController.navigate("setcri")
+                    navController.navigate("setcri") {
+                        //
+                    }
                 },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Main),
@@ -88,7 +90,9 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             Button(
                 onClick = {
                     viewModel.stopSpeaking()
-                    navController.navigate("setui")
+                    navController.navigate("setui") {
+                        //
+                    }
                 },
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Main),

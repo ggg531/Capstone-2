@@ -31,7 +31,7 @@ fun MainApp() {
             }
         },
         bottomBar = {
-            if (currentRoute in listOf("camera", "my", "setcri", "setui")) {
+            if (currentRoute in listOf("my", "setcri", "setui")) {
                 BottomBar(navController)
             }
         }

@@ -41,11 +41,18 @@ import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
 import android.os.VibrationEffect
 import android.os.Vibrator
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.example.foodtap.ui.theme.Show
 import com.example.foodtap.ui.theme.Unsafe
 import com.example.foodtap.ui.theme.Safe
@@ -129,8 +136,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(top = 30.dp, bottom = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
 
     ) {
         Box(
@@ -147,23 +155,60 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 color = Color.Black
             )
         }
+
+        Button(
+            onClick = {
+                viewModel.stopSpeaking()
+                navController.navigate("my") {
+                    //
+                }
+            },
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Main),
+            modifier = Modifier
+                .size(width = 330.dp, height = 100.dp)
+                .border(3.dp, Color.White, RoundedCornerShape(16.dp))
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "마이 페이지",
+                color = Color.White,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }
+            )
+        }
     }
 
     if (showDialog) {
+        //val isSafe = viewModel.descFiltering() && viewModel.allergyFiltering()
+        val isSafe = viewModel.allergyFiltering()
+
         LaunchedEffect(showDialog) {
-            val haptic = context.getSystemService(Vibrator::class.java)
+            val vibrator = context.getSystemService(Vibrator::class.java)
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                haptic?.vibrate(
+                val vibrationEffect = if (isSafe) {
                     VibrationEffect.createOneShot(150, 200)
-                )
+                } else {
+                    VibrationEffect.createWaveform(longArrayOf(0, 200, 50, 200), intArrayOf(0, 255, 0, 255), -1)
+                }
+                vibrator?.vibrate(vibrationEffect)
             } else {
                 @Suppress("DEPRECATION")
-                haptic?.vibrate(150)
+                vibrator?.vibrate(if (isSafe) 150 else 200)
             }
         }
 
         AlertDialog(
-            //containerColor = if(identifiedAllergy == userAllergy || identifiedDesc == userDesc) Unsafe else Safe,
+            containerColor = if (isSafe) Safe else Unsafe,
+
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -223,9 +268,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedDesc.isNotBlank()) identifiedDesc else "인식되지 않았습니다.")
+                            append(if (identifiedDesc.isNotBlank()) "$identifiedDesc 입니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
-                            //append(if (identifiedAllergy.isNotBlank()) identifiedAllergy else "인식되지 않았습니다.")
+                            append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
                         }
                         viewModel.speak(listen)
                     },
