@@ -36,6 +36,15 @@ object RetrofitClient {
         retrofit.create(GetApprovalService::class.java)
     }
 
+    val stt2Allergy: SttService by lazy {
+        val retrofit = Retrofit.Builder()
+            .baseUrl(AI_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        retrofit.create(SttService::class.java)
+    }
+
     val instance: ClovaOcrService by lazy {
         Retrofit.Builder()
             .baseUrl(CLOVA_URL)

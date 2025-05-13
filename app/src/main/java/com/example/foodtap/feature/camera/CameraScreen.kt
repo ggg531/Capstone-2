@@ -60,6 +60,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
+    val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
 
     // Clova OCR API 호출을 담당하는 Analyzer 인스턴스 생성
     // ClovaOcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
@@ -178,7 +179,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedDesc.ifBlank { "없음" },
+                        text = identifiedExpiration.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
@@ -188,6 +189,15 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     )
                     Text(
                         text = identifiedAllergy.toString().ifBlank { "없음" },
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    Text(
+                        text = "설명:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = identifiedDesc.ifBlank { "없음" },
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
@@ -215,9 +225,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (expiryText.isNotBlank()) expiryText else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) expiryText else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
-                            append(if (nutritionText.isNotBlank()) nutritionText else "인식되지 않았습니다.")
+                            append(if (identifiedAllergy.isNotEmpty()) nutritionText else "인식되지 않았습니다.")
                         }
                         viewModel.speak(listen)
                     },

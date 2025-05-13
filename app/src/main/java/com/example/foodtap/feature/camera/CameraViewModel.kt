@@ -32,6 +32,9 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _identifiedDesc = MutableStateFlow("")
     val identifiedDesc: StateFlow<String> = _identifiedDesc
 
+    private val _identifiedExpiration = MutableStateFlow("")
+    val identifiedExpiration: StateFlow<String> = _identifiedExpiration
+
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
@@ -71,37 +74,35 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
             _ocrTextList.clear()
             _ocrTextList.addAll(listOf(inferTextLines))
 
-            // OCR 결과를 바탕으로 필요한 정보를 추출 (containsDate 함수 필요)
-            val distinctText = _ocrTextList.distinct() // 필요한 경우 중복 제거
-            val nutrition = distinctText.joinToString("\n") // 예시: 모든 라인을 합침
-            val expiry = distinctText.filter { containsDate(it) }.joinToString("\n") // 예시: containsDate 함수 필요
+            if (_ocrTextList.isNotEmpty()) {
 
-            if (nutrition.isNotBlank() || expiry.isNotBlank()) {
-                val fullText = "$nutrition\n$expiry"
-
-
-                Log.d("CameraScreen", "Triggering external approval API call with: $fullText")
+                Log.d("CameraScreen", "Triggering external approval API call with: $_ocrTextList")
 
                 // 외부 API 호출 및 결과 처리
-                val request = OcrRequest(ocr = fullText) // OcrRequest 데이터 클래스 필요
+                val request = OcrRequest(ocr = _ocrTextList.toString()) // OcrRequest 데이터 클래스 필요
                 RetrofitClient.get_approval.getApproval(request).enqueue(object : Callback<OcrResponse> {
                     override fun onResponse(call: Call<OcrResponse>, response: Response<OcrResponse>) {
                         if (response.isSuccessful) {
                             val approval = response.body()?.approval == true
                             val allergy = response.body()?.allergy
                             val desc = response.body()?.desc
+                            val expiration = response.body()?.expiration
 
-                            Log.d("API", "approval: $approval, allergy: $allergy, desc: $desc")
+                            Log.d("API", "approval: $approval, allergy: $allergy, desc: $desc, expiration: $expiration")
 
                             // 외부 API 응답 결과에 따라 UI 상태 업데이트
                             if (approval &&  desc != null) {
-                                if (allergy != null) {
-                                    _identifiedAllergy.value = allergy
+                                if (!allergy.isNullOrEmpty() && !_identifiedAllergy.value.containsAll(allergy)) {
+                                    _identifiedDesc.value += desc
                                 }
-                                _identifiedDesc.value = desc
-                                // nutritionText와 expiryText는 OCR 결과에서 이미 추출했으므로 여기서 설정
-                                _nutritionText.value = nutrition
-                                _expiryText.value = expiry
+
+                                if (allergy != null) {
+                                    _identifiedAllergy.value = _identifiedAllergy.value.union(allergy).toList()
+                                }
+                                if (!expiration.isNullOrEmpty()) {
+                                    _identifiedExpiration.value = expiration
+                                }
+
                                 _showDialog.value = true // 다이얼로그 표시
                                 _isScanning.value = false // 스캔 중지
                             } else {
