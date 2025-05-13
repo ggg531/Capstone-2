@@ -30,11 +30,18 @@ interface GetApprovalService {
     fun getApproval(@Body request: OcrRequest): Call<OcrResponse>
 }
 
+// for Naver CLOVA OCR
 interface ClovaOcrService {
     @POST("general")
     fun sendOcrRequest(
         @Body requestBody: RequestBody,
         @Header("X-OCR-SECRET") secret: String = "WkJkVlhuT3lsVGFoSUZhZ1BhT3BZd3VmekxOY0p1T1c="
     ): Call<ClovaOcrResponse>
+}
+
+interface SttService {
+    @Headers("Content-Type: application/json")
+    @POST("/stt")
+    fun stt2Allergy(@Body request: OcrRequest): Call<OcrResponse>
 }
 

@@ -58,20 +58,6 @@ import com.example.foodtap.ui.theme.Unsafe
 import com.example.foodtap.ui.theme.Safe
 
 
-// 외부 API로 OCR 결과 전송
-//suspend fun sendOcrResultToApi(ocrText: String): Boolean {
-//    return try {
-//        val response = withContext(Dispatchers.IO) {
-//            // Retrofit 또는 OkHttp를 통한 API 호출
-//            // 예: apiService.sendOcrResult(RequestBody(ocrText))
-//        }
-//        response.approval  // Boolean 필드 반환
-//    } catch (e: Exception) {
-//        e.printStackTrace()
-//        false
-//    }
-//}
-
 @Composable
 fun CameraScreen(navController: NavController, viewModel: CameraViewModel = viewModel()) {
     val context = LocalContext.current
