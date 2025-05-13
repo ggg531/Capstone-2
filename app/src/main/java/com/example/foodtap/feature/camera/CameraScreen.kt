@@ -18,12 +18,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,7 +41,9 @@ import com.example.foodtap.api.OcrResponse
 import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.feature.ocr.ClovaOcrAnalyzer
 import com.example.foodtap.ui.theme.Main
+import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Show
+import com.example.foodtap.ui.theme.Unsafe
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.Callback
@@ -123,8 +129,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(top = 30.dp, bottom = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
 
     ) {
         Box(
@@ -141,22 +148,60 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 color = Color.Black
             )
         }
+
+        Button(
+            onClick = {
+                viewModel.stopSpeaking()
+                navController.navigate("my") {
+                    //
+                }
+            },
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Main),
+            modifier = Modifier
+                .size(width = 330.dp, height = 100.dp)
+                .border(3.dp, Color.White, RoundedCornerShape(16.dp))
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "마이 페이지",
+                color = Color.White,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }
+            )
+        }
     }
 
     if (showDialog) {
+        //val isSafe = viewModel.descFiltering() && viewModel.allergyFiltering()
+        val isSafe = viewModel.allergyFiltering()
+
         LaunchedEffect(showDialog) {
-            val haptic = ctx.getSystemService(Vibrator::class.java)
+            val vibrator = ctx.getSystemService(Vibrator::class.java)
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                haptic?.vibrate(
+                val vibrationEffect = if (isSafe) {
                     VibrationEffect.createOneShot(150, 200)
-                )
+                } else {
+                    VibrationEffect.createWaveform(longArrayOf(0, 200, 50, 200), intArrayOf(0, 255, 0, 255), -1)
+                }
+                vibrator?.vibrate(vibrationEffect)
             } else {
                 @Suppress("DEPRECATION")
-                haptic?.vibrate(150)
+                vibrator?.vibrate(if (isSafe) 150 else 200)
             }
         }
 
         AlertDialog(
+            containerColor = if (isSafe) Safe else Unsafe,
+
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -245,70 +290,5 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             },
             onDismissRequest = {}
         )
-    }
-
-//    if (showDialog) {
-//        AlertDialog(
-//            onDismissRequest = {
-//                viewModel.showDialog = false
-//                viewModel.isScanning = true
-//            },
-//            confirmButton = {
-//                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    TextButton(onClick = {
-//                        //
-//                    }) {
-//                        Text("다시 듣기")
-//                    }
-//                    TextButton(onClick = {
-//                        showDialog = false
-//                        isScanning = true
-//                    }) {
-//                        Text("확인")
-//                    }
-//                }
-//            },
-//            title = { Text("식품 정보") },
-//            text = {
-//                Column(modifier = Modifier.padding(16.dp)) {
-//                    Text(
-//                        text = "소비기한:",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        modifier = Modifier.padding(bottom = 4.dp)
-//                    )
-////                    Text(
-////                        text = expiryText.ifBlank { "없음" },
-////                        modifier = Modifier.padding(bottom = 12.dp)
-////                    )
-//                    Text(
-//                        text = "알레르기:",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        modifier = Modifier.padding(bottom = 4.dp)
-//                    )
-////                    Text(
-////                        text = nutritionText.ifBlank { "없음" }
-////                    )
-//                    Text(
-//                        text = identifiedAllergy.toString().ifBlank { "없음" }
-//                    )
-//                    Text(
-//                        text = identifiedDesc.ifBlank { "없음" }
-//                    )
-////                    Text(
-////                        text = nutritionText.ifBlank { "없음" }
-////                    )
-//                }
-//            }
-//        )
-//    }
-}
-
-fun containsDate(text: String): Boolean {
-    val datePatterns = listOf(
-        "\\d{4}[./-]\\d{1,2}[./-]\\d{1,2}",
-        "\\d{2}[./-]\\d{1,2}[./-]\\d{1,2}"
-    )
-    return datePatterns.any { pattern ->
-        Pattern.compile(pattern).matcher(text).find()
     }
 }

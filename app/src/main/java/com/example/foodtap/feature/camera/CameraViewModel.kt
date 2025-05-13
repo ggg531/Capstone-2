@@ -36,14 +36,14 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _identifiedExpiration = MutableStateFlow("")
     val identifiedExpiration: StateFlow<String> = _identifiedExpiration
 
-    private val _dDayDesc = MutableStateFlow<Int?>(null)
-    val dDayDesc: StateFlow<Int?> = _dDayDesc
-
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
     private var tts: TextToSpeech = TextToSpeech(application, this)
     private var isTtsInitialized = false
+
+    private val _dDayDesc = MutableStateFlow<Int?>(null)
+    val dDayDesc: StateFlow<Int?> = _dDayDesc
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
