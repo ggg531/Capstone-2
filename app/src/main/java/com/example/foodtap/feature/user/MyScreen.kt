@@ -95,8 +95,8 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                     modifier = Modifier.size(width = 360.dp, height = 72.dp)
                 ) {
                     Text(
-                        //text = "$UserExp 일 이상을 선호합니다.",
-                        text = "UserExp 일",
+                        //text = "$userExp 일 이상을 선호합니다.",
+                        text = "userExp 일",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,

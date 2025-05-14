@@ -189,7 +189,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         _ocrTextList.clear()
     }
 
-    private val UserExp = 5
+    private val userExp = 5
     private val userAllergy = listOf("우유", "대두")
 
     fun expDday(): Int? {
@@ -209,11 +209,11 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    fun expFiltering(): Boolean { // UserExp
+    fun expFiltering(): Boolean { // userExp
         if (identifiedExpiration.value.isBlank()) return true
 
         val dDay = expDday()
-        return dDay != null && dDay > UserExp
+        return dDay != null && dDay > userExp
     }
 
 
