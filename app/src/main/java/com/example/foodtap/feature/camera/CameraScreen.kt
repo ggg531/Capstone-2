@@ -41,6 +41,7 @@ import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Show
 import com.example.foodtap.ui.theme.Unsafe
+import kotlinx.coroutines.delay
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.Callback
@@ -87,6 +88,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             }
     }
 
+    LaunchedEffect(Unit) {
+        delay(500)
+        viewModel.speak("식품 정보를 촬영하세요.")
+    }
 
     val previewView = remember {
         PreviewView(ctx).apply {
