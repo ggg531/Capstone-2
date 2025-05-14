@@ -51,8 +51,9 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    fun speak(text: String, utteranceId: String) {
+    fun speak(text: String, utteranceId: String = "init") {
         if (isTtsInitialized) {
+            tts.stop()
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
         }
     }
@@ -60,7 +61,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
     init {
         CoroutineScope(Dispatchers.Main).launch {
             delay(500)
-            speak("화면을 탭하여 보유 알레르기 성분을 음성으로 등록하세요", "starttap")
+            speak("화면을 탭하여 알레르기 성분을 음성으로 등록하세요", "starttap")
         }
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle?) {
@@ -128,7 +129,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         _showDialog.value = false
         CoroutineScope(Dispatchers.Main).launch {
             delay(500)
-            speak("화면을 탭하여 보유 알레르기 성분을 음성으로 등록하세요", "starttap")
+            speak("화면을 탭하여 알레르기 성분을 음성으로 등록하세요", "starttap")
         }
     }
 

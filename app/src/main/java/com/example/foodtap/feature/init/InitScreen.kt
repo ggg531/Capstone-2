@@ -3,24 +3,32 @@ package com.example.foodtap.feature.init
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.util.Log
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
+import kotlinx.coroutines.delay
 
 @Composable
 fun InitScreen(navController: NavController, viewModel: InitViewModel = viewModel()) {
@@ -61,30 +70,31 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
         verticalArrangement = Arrangement.Center
     ) {
         if (isListening) {
-            Icon(
-                imageVector = Icons.Default.Mic,
-                contentDescription = "음성 인식 중",
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
+            micAnimation()
+            Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "음성 인식 중입니다.",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                lineHeight = 40.sp,
+                textAlign = TextAlign.Center,
             )
         } else {
             Text(
-                text = "화면을 탭하여 보유 알레르기 성분을\n음성으로 등록하세요",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
+                text = "화면을 탭하여 알레르기 성분을\n음성으로 등록하세요.",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                lineHeight = 40.sp,
+                textAlign = TextAlign.Center,
             )
         }
     }
 
     if (showDialog) {
         val hasResult = allergySttText.isNotBlank()
+        val sttresult = if (hasResult) "$allergySttText 성분을 등록하시겠습니까?" else "알레르기 성분을 다시 등록하세요."
 
         LaunchedEffect(showDialog) {
             val vibrator = context.getSystemService(Vibrator::class.java)
@@ -96,6 +106,11 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 @Suppress("DEPRECATION")
                 vibrator?.vibrate(150)
             }
+        }
+
+        LaunchedEffect(sttresult) {
+            delay(500)
+            viewModel.speak(sttresult)
         }
 
         AlertDialog(
@@ -115,20 +130,21 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             },
             text = {
                 Column(
-                    modifier = Modifier
-                        .width(320.dp)
-                        .height(200.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
+
                 ) {
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = if (hasResult) "$allergySttText\n성분을 등록하시겠습니까?" else "알레르기 보유 성분을\n다시 등록하세요.",
+                        text = if (hasResult) "$allergySttText\n성분을 등록하시겠습니까?" else "알레르기 성분을\n다시 등록하세요.",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.Black,
                         lineHeight = 40.sp,
                         textAlign = TextAlign.Center,
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             },
             confirmButton = {
@@ -171,6 +187,50 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 }
             },
             onDismissRequest = {}
+        )
+    }
+}
+
+@Composable
+fun micAnimation() {
+    val infiniteTransition = rememberInfiniteTransition()
+
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 2.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    Box(
+        modifier = Modifier.size(180.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawCircle(
+                color = Main.copy(alpha = alpha),
+                radius = 40.dp.toPx() * scale
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.Mic,
+            contentDescription = "음성 인식 중입니다.",
+            tint = Color.White,
+            modifier = Modifier
+                .size(64.dp)
+                .background(Main, CircleShape)
+                .padding(16.dp)
         )
     }
 }

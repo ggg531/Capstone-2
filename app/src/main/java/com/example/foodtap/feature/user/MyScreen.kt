@@ -1,5 +1,6 @@
 package com.example.foodtap.feature.user
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -153,7 +154,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 imageVector = Icons.Default.PhotoCamera,
                 contentDescription = null,
                 tint = Color.Black,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp) //64
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(

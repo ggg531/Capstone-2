@@ -10,7 +10,6 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -134,22 +133,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         verticalArrangement = Arrangement.Bottom
         //verticalArrangement = Arrangement.SpaceBetween
 
-    ) {/*
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(width = 330.dp, height = 72.dp)
-                .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
-                .background(Show, RoundedCornerShape(16.dp))
-        ) {
-            Text(
-                text = "식품 정보를 촬영하세요.",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-        }
-*/
+    ) {
         Button(
             onClick = {
                 viewModel.stopSpeaking()
@@ -277,10 +261,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedExpiration.isNotBlank()) identifiedExpiration else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 일 까지 입니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
-                            append(if (identifiedAllergy.isNotEmpty()) identifiedAllergy else "인식되지 않았습니다.")
-                            append(if (identifiedDesc.isEmpty()) identifiedDesc else "")
+                            append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedDesc.isEmpty()) identifiedDesc else "") //
                         }
                         viewModel.speak(listen)
                     },
