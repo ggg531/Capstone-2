@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.foodtap.feature.user.MyViewModel
 import com.example.foodtap.ui.theme.Main
+import com.example.foodtap.ui.theme.Show
 
 @Composable
 fun BottomBar(navController: NavController) {
@@ -48,7 +49,7 @@ fun BottomBar(navController: NavController) {
                 navController.navigate("camera")
             },
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Main),
+            colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier.height(180.dp)
         ) {
             Column(
@@ -57,13 +58,13 @@ fun BottomBar(navController: NavController) {
                 Icon(
                     imageVector = Icons.Default.PhotoCamera,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = Color.Black,
                     modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "촬영 페이지",
-                    color = Color.White,
+                    color = Color.Black,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.semantics { contentDescription = "촬영 페이지로 이동" }
@@ -77,7 +78,7 @@ fun BottomBar(navController: NavController) {
                 //viewModel.stopSpeaking()
             },
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Main),
+            colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier.height(180.dp)
         ) {
             Column(
@@ -86,13 +87,13 @@ fun BottomBar(navController: NavController) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = Color.Black,
                     modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "마이 페이지",
-                    color = Color.White,
+                    color = Color.Black,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }

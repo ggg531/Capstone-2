@@ -30,11 +30,12 @@ fun MainApp() {
                 TopBar(navController)
             }
         },
+        /*
         bottomBar = {
             if (currentRoute in listOf("my", "setcri", "setui")) {
                 BottomBar(navController)
             }
-        }
+        }*/
     ) {  innerPadding->
         NavHost(
             navController = navController,

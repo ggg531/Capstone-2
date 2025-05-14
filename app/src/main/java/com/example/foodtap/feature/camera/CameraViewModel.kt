@@ -36,14 +36,14 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _identifiedExpiration = MutableStateFlow("")
     val identifiedExpiration: StateFlow<String> = _identifiedExpiration
 
+    private val _dDayExp = MutableStateFlow<Int?>(null)
+    val dDayExp: StateFlow<Int?> = _dDayExp
+
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
     private var tts: TextToSpeech = TextToSpeech(application, this)
     private var isTtsInitialized = false
-
-    private val _dDayDesc = MutableStateFlow<Int?>(null)
-    val dDayDesc: StateFlow<Int?> = _dDayDesc
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -189,31 +189,31 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         _ocrTextList.clear()
     }
 
-    private val userDesc = 5
+    private val UserExp = 5
     private val userAllergy = listOf("우유", "대두")
 
-    fun descDday(): Int? {
-        if (identifiedDesc.value.isBlank()) return null
+    fun expDday(): Int? {
+        if (identifiedExpiration.value.isBlank()) return null
 
         return try {
             val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
-            val endDate = dateFormat.parse(identifiedDesc.value)
+            val endDate = dateFormat.parse(identifiedExpiration.value)
             val startDate = java.util.Date()
 
             val dDay = ((endDate.time - startDate.time) / (24 * 60 * 60 * 1000)).toInt()
-            _dDayDesc.value = dDay
+            _dDayExp.value = dDay
             dDay
         } catch (e: Exception) {
-            Log.e("descDday", "날짜 파싱 실패: ${e.message}")
+            Log.e("expDday", "날짜 파싱 실패: ${e.message}")
             null
         }
     }
 
-    fun descFiltering(): Boolean { // userDesc
-        if (identifiedDesc.value.isBlank()) return true
+    fun expFiltering(): Boolean { // UserExp
+        if (identifiedExpiration.value.isBlank()) return true
 
-        val dDay = descDday()
-        return dDay != null && dDay > userDesc
+        val dDay = expDday()
+        return dDay != null && dDay > UserExp
     }
 
 

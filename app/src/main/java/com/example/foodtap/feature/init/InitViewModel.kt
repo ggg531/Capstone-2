@@ -68,7 +68,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                     results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
                         ?: ""
                 _rawSttText.value = result
-                _allergySttText.value = result // 키워드 형식으로 추출
+                _allergySttText.value = result
                 _isListening.value = false
                 _showDialog.value = true
             }

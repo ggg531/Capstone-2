@@ -1,7 +1,3 @@
-// TODO: 유통기한도 GPT로 처리하기
-// TODO: 인식 안 된 경우 공백으로 처리
-
-
 package com.example.foodtap.feature.camera
 
 import android.os.Build
@@ -17,6 +13,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -62,8 +59,6 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
 
-    val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
-    val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
     val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
@@ -129,11 +124,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 30.dp, bottom = 30.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.Bottom
+        //verticalArrangement = Arrangement.SpaceBetween
 
-    ) {
+    ) {/*
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -148,7 +144,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 color = Color.Black
             )
         }
-
+*/
         Button(
             onClick = {
                 viewModel.stopSpeaking()
@@ -157,22 +153,22 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 }
             },
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Main),
+            colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier
                 .size(width = 330.dp, height = 100.dp)
-                .border(3.dp, Color.White, RoundedCornerShape(16.dp))
+                .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
-                tint = Color.White,
+                tint = Color.Black,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "마이 페이지",
-                color = Color.White,
-                fontSize = 26.sp,
+                color = Color.Black,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }
             )
@@ -180,7 +176,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     if (showDialog) {
-        //val isSafe = viewModel.descFiltering() && viewModel.allergyFiltering()
+        //val isSafe = viewModel.expFiltering() && viewModel.allergyFiltering()
         val isSafe = viewModel.allergyFiltering()
 
         LaunchedEffect(showDialog) {
@@ -219,26 +215,32 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             text = {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "소비기한:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "소비 기한",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedExpiration.ifBlank { "없음" },
+                        text = identifiedExpiration.ifBlank { "없음" }, // dday도 추가
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
-                        text = "알레르기:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "알레르기 성분",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedAllergy.toString().ifBlank { "없음" },
+                        text = identifiedAllergy.toString().ifBlank { "없음" }, // []도 뜸
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
-                        text = "설명:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "식품 상세 정보",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
@@ -270,9 +272,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedExpiration.isNotBlank()) expiryText else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) identifiedExpiration else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
-                            append(if (identifiedAllergy.isNotEmpty()) nutritionText else "인식되지 않았습니다.")
+                            append(if (identifiedAllergy.isNotEmpty()) identifiedAllergy else "인식되지 않았습니다.")
+                            append(if (identifiedDesc.isEmpty()) identifiedDesc else "")
                         }
                         viewModel.speak(listen)
                     },
