@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.Locale
 
 // API 호출 상태를 나타내는 Enum
@@ -132,11 +134,11 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             override fun onResponse(call: Call<SttResponse>, response: Response<SttResponse>) {
                 if (response.isSuccessful) {
                     val sttResponse = response.body()
-                    if (sttResponse != null && sttResponse.userAllergy.isNotEmpty()) {
-                        _processedAllergyList.value = sttResponse.userAllergy
-                        _displayAllergyText.value = sttResponse.userAllergy.joinToString(", ")
+                    if (sttResponse != null && sttResponse.allergy.isNotEmpty()) {
+                        _processedAllergyList.value = sttResponse.allergy
+                        _displayAllergyText.value = sttResponse.allergy.joinToString(", ")
                         _apiCallStatus.value = ApiStatus.SUCCESS
-                        Log.d("API_SUCCESS", "Processed allergies: ${sttResponse.userAllergy}")
+                        Log.d("API_SUCCESS", "Processed allergies: ${sttResponse.allergy}")
                     } else {
                         _displayAllergyText.value = "인식된 알레르기 성분이 없습니다."
                         _processedAllergyList.value = emptyList()
