@@ -32,20 +32,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.foodtap.api.OcrRequest
-import com.example.foodtap.api.OcrResponse
-import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.feature.ocr.ClovaOcrAnalyzer
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Show
 import com.example.foodtap.ui.theme.Unsafe
 import kotlinx.coroutines.delay
-import retrofit2.Call
-import retrofit2.Response
-import retrofit2.Callback
 import java.util.concurrent.Executors
-import java.util.regex.Pattern
 
 @Composable
 fun CameraScreen(navController: NavController, viewModel: CameraViewModel = viewModel()) {

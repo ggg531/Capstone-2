@@ -14,6 +14,7 @@ import com.example.foodtap.feature.camera.CameraPermission
 import com.example.foodtap.feature.init.InitScreen
 import com.example.foodtap.feature.user.MyScreen
 import com.example.foodtap.feature.user.SetCriteriaScreen
+import com.example.foodtap.feature.user.SetExpScreen
 import com.example.foodtap.feature.user.SetUiScreen
 import com.example.foodtap.ui.BottomBar
 import com.example.foodtap.ui.TopBar
@@ -26,7 +27,7 @@ fun MainApp() {
 
     Scaffold(
         topBar = {
-            if (currentRoute in listOf("my", "setdate", "setaller", "setcri", "setui")) {
+            if (currentRoute in listOf("my", "setexp")) {
                 TopBar(navController)
             }
         },
@@ -46,8 +47,9 @@ fun MainApp() {
             composable("init") { InitScreen(navController) }
             composable("camera") { CameraPermission(navController) }
             composable("my") { MyScreen(navController) }
-            composable("setcri") { SetCriteriaScreen(navController) }
-            composable("setui") { SetUiScreen(navController) }
+            composable("setexp") { SetExpScreen(navController) }
+            //composable("setcri") { SetCriteriaScreen(navController) }
+            //composable("setui") { SetUiScreen(navController) }
         }
     }
 }

@@ -79,6 +79,11 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 color = Color.Black,
                 lineHeight = 40.sp,
                 textAlign = TextAlign.Center,
+                /*
+                fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+                 */
             )
         } else {
             Text(
