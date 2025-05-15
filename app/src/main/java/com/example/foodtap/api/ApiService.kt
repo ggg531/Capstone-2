@@ -3,6 +3,7 @@ package com.example.foodtap.api
 import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
@@ -24,10 +25,19 @@ interface GetUserIdService {
     ): Call<UserData>
 }
 
+interface DeleteUserIdService {
+    @DELETE("/user/{id}")
+    fun deleteUser(
+        @Path("id") id: String,
+    ): Call<String>
+}
+
 interface GetApprovalService {
     @Headers("Content-Type: application/json")
     @POST("/test")
-    fun getApproval(@Body request: OcrRequest): Call<OcrResponse>
+    fun getApproval(
+        @Body request: OcrRequest
+    ): Call<OcrResponse>
 }
 
 // for Naver CLOVA OCR
@@ -42,6 +52,6 @@ interface ClovaOcrService {
 interface SttService {
     @Headers("Content-Type: application/json")
     @POST("/stt")
-    fun stt2Allergy(@Body request: OcrRequest): Call<OcrResponse>
+    fun stt2Allergy(@Body request: SttRequest): Call<SttResponse>
 }
 

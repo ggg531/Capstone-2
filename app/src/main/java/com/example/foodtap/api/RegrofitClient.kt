@@ -26,6 +26,15 @@ object RetrofitClient {
 
         retrofit.create(GetUserIdService::class.java)
     }
+    
+    val del_instance: DeleteUserIdService by lazy {
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        retrofit.create(DeleteUserIdService::class.java)
+    }
 
     val get_approval: GetApprovalService by lazy {
         val retrofit = Retrofit.Builder()
@@ -48,7 +57,7 @@ object RetrofitClient {
     val instance: ClovaOcrService by lazy {
         Retrofit.Builder()
             .baseUrl(CLOVA_URL)
-            .addConverterFactory(GsonConverterFactory.create())  // <-- 이 부분 중요
+            .addConverterFactory(GsonConverterFactory.create())
             .client(OkHttpClient.Builder().build())
             .build()
             .create(ClovaOcrService::class.java)
