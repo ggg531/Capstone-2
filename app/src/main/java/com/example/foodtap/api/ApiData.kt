@@ -12,7 +12,7 @@ data class OcrRequest(
 )
 
 data class SttResponse(
-    val userAllergy: List<String>
+    val allergy: List<String>
 )
 
 data class SttRequest(

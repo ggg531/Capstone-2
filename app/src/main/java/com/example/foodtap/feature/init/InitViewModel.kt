@@ -89,8 +89,10 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle?) {
                 _isListening.value = false
+                Log.d("STT", "onResults called")
                 val resultText = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
                 _rawSttText.value = resultText
+                Log.d("STT", resultText)
                 if (resultText.isNotBlank()) {
                     callStt2AllergyApi(resultText)
                 } else {
@@ -134,11 +136,12 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             override fun onResponse(call: Call<SttResponse>, response: Response<SttResponse>) {
                 if (response.isSuccessful) {
                     val sttResponse = response.body()
-                    if (sttResponse != null && sttResponse.userAllergy.isNotEmpty()) {
-                        _processedAllergyList.value = sttResponse.userAllergy
-                        _displayAllergyText.value = sttResponse.userAllergy.joinToString(", ")
+                    Log.d("API_CALL", "$sttResponse")
+                    if (sttResponse != null && sttResponse.allergy.isNotEmpty()) {
+                        _processedAllergyList.value = sttResponse.allergy
+                        _displayAllergyText.value = sttResponse.allergy.joinToString(", ")
                         _apiCallStatus.value = ApiStatus.SUCCESS
-                        Log.d("API_SUCCESS", "Processed allergies: ${sttResponse.userAllergy}")
+                        Log.d("API_SUCCESS", "Processed allergies: ${sttResponse.allergy}")
                     } else {
                         _displayAllergyText.value = "인식된 알레르기 성분이 없습니다."
                         _processedAllergyList.value = emptyList()
