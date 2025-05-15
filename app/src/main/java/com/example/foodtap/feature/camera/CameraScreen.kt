@@ -14,9 +14,9 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -36,19 +36,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.foodtap.api.OcrRequest
-import com.example.foodtap.api.OcrResponse
-import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.feature.ocr.ClovaOcrAnalyzer
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Show
 import com.example.foodtap.ui.theme.Unsafe
-import retrofit2.Call
-import retrofit2.Response
-import retrofit2.Callback
+import kotlinx.coroutines.delay
 import java.util.concurrent.Executors
-import java.util.regex.Pattern
 
 @Composable
 fun CameraScreen(navController: NavController, viewModel: CameraViewModel = viewModel()) {
@@ -92,6 +86,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             }
     }
 
+    LaunchedEffect(Unit) {
+        delay(500)
+        viewModel.speak("식품 정보를 촬영하세요.")
+    }
 
     val previewView = remember {
         PreviewView(ctx).apply {
@@ -129,11 +127,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 30.dp, bottom = 30.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.Bottom
+        //verticalArrangement = Arrangement.SpaceBetween
 
-    ) {
+    ) {/*
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -148,7 +147,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 color = Color.Black
             )
         }
-
+*/
         Button(
             onClick = {
                 viewModel.stopSpeaking()
@@ -157,22 +156,22 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 }
             },
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Main),
+            colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier
                 .size(width = 330.dp, height = 100.dp)
-                .border(3.dp, Color.White, RoundedCornerShape(16.dp))
+                .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
-                tint = Color.White,
+                tint = Color.Black,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "마이 페이지",
-                color = Color.White,
-                fontSize = 26.sp,
+                color = Color.Black,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }
             )
@@ -180,7 +179,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     if (showDialog) {
-        //val isSafe = viewModel.descFiltering() && viewModel.allergyFiltering()
+        //val isSafe = viewModel.expFiltering() && viewModel.allergyFiltering()
         val isSafe = viewModel.allergyFiltering()
 
         LaunchedEffect(showDialog) {
@@ -219,26 +218,32 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             text = {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "소비기한:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "소비 기한",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedExpiration.ifBlank { "없음" },
+                        text = identifiedExpiration.ifBlank { "없음" }, // dday도 추가
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
-                        text = "알레르기:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "알레르기 성분",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
-                        text = identifiedAllergy.toString().ifBlank { "없음" },
+                        text = identifiedAllergy.toString().ifBlank { "없음" }, // []도 뜸
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     Text(
-                        text = "설명:",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "식품 상세 정보",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                     Text(
@@ -270,9 +275,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedDesc.isNotBlank()) "$identifiedDesc 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 일 까지 입니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
                             append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedDesc.isEmpty()) identifiedDesc else "") //
                         }
                         viewModel.speak(listen)
                     },
