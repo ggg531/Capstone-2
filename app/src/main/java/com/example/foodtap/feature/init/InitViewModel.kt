@@ -89,8 +89,10 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle?) {
                 _isListening.value = false
+                Log.d("STT", "onResults called")
                 val resultText = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
                 _rawSttText.value = resultText
+                Log.d("STT", resultText)
                 if (resultText.isNotBlank()) {
                     callStt2AllergyApi(resultText)
                 } else {
@@ -134,6 +136,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             override fun onResponse(call: Call<SttResponse>, response: Response<SttResponse>) {
                 if (response.isSuccessful) {
                     val sttResponse = response.body()
+                    Log.d("API_CALL", "$sttResponse")
                     if (sttResponse != null && sttResponse.allergy.isNotEmpty()) {
                         _processedAllergyList.value = sttResponse.allergy
                         _displayAllergyText.value = sttResponse.allergy.joinToString(", ")
