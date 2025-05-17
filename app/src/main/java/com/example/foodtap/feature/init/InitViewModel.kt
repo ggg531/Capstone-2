@@ -210,7 +210,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         _showDialog.value = false
         viewModelScope.launch {
             delay(500)
-            speak("화면을 탭하여 알레르기 성분을 음성으로 등록하세요", "starttap")
+            speak("화면을 탭하여 알레르기 성분을 등록하세요", "starttap")
         }
     }
 

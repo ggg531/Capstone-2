@@ -41,7 +41,7 @@ fun MainApp() {
     ) {  innerPadding->
         NavHost(
             navController = navController,
-            startDestination = "my",
+            startDestination = "signin",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("signin") { SigninScreen(navController) }

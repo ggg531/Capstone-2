@@ -78,7 +78,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "음성 인식 중입니다.",
-                fontSize = 24.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Black,
                 lineHeight = 40.sp,
@@ -91,8 +91,8 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             )
         } else {
             Text(
-                text = "화면을 탭하여 알레르기 성분을\n음성으로 등록하세요.",
-                fontSize = 24.sp,
+                text = "화면을 탭하여 알레르기 성분을 등록하세요.",
+                fontSize = 28.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Black,
                 lineHeight = 40.sp,

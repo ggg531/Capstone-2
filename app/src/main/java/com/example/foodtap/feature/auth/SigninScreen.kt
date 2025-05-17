@@ -1,11 +1,13 @@
 package com.example.foodtap.feature.auth
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.delay
 
@@ -61,7 +64,8 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
             UserStatus.NEW_USER -> {
                 Log.d("SigninScreen", "Navigating to initScreen for new user.")
                 // 신규 사용자의 경우, TTS 안내 후 잠시 대기하고 이동하거나 바로 이동
-                delay(1000) // TTS 메시지 등을 위한 약간의 딜레이 (선택 사항)
+                viewModel.speak("식품 톡톡에 오신 것을 환영합니다!")
+                delay(3000)
                 navController.navigate("init") { // 사용자가 initScreen으로 명시
                     popUpTo("signin") { inclusive = true }
                 }
@@ -69,15 +73,17 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
             UserStatus.EXISTING_USER -> {
                 Log.d("SigninScreen", "Navigating to my screen for existing user.")
                 // 기존 사용자의 경우, TTS 안내 후 잠시 대기하고 이동하거나 바로 이동
-                delay(1000) // TTS 메시지 등을 위한 약간의 딜레이 (선택 사항)
-                navController.navigate("my") { // 사용자가 my 스크린으로 명시
+                viewModel.speak("식품 톡톡을 다시 찾아주셔서 감사합니다!")
+                delay(3000)
+                navController.navigate("camera") {
                     popUpTo("signin") { inclusive = true }
                 }
             }
             UserStatus.ERROR -> {
                 Log.e("SigninScreen", "Error occurred. Navigating to initScreen as fallback.")
                 // 오류 발생 시 기본 화면으로 이동 (예: initScreen)
-                delay(1000)
+                viewModel.speak("오류가 발생했습니다.\n잠시 후 다시 시도해주세요.")
+                delay(3000)
                 navController.navigate("init") {
                     popUpTo("signin") { inclusive = true }
                 }
@@ -91,28 +97,63 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
 
     // UI 표시
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Main)
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         if (isLoading || userStatus == UserStatus.UNKNOWN) { // 로딩 중이거나 아직 상태 모를 때
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("사용자 정보를 확인 중입니다...", fontSize = 18.sp)
+            Text(
+                text = "사용자 정보를 확인 중입니다.",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                lineHeight = 40.sp,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            CircularProgressIndicator(color = Color.White)
         } else {
             Text(
-                text = "식품 톡톡", // 문구는 자유롭게 수정
-                fontSize = 32.sp,
+                text = "식품 톡톡",
+                fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = Color.White,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
             when (userStatus) {
-                UserStatus.NEW_USER -> Text("환영합니다! 초기 설정 화면으로 이동합니다.", fontSize = 18.sp)
-                UserStatus.EXISTING_USER -> Text("다시 찾아주셔서 감사합니다! 내 정보 화면으로 이동합니다.", fontSize = 18.sp)
-                UserStatus.ERROR -> Text("오류가 발생했습니다. 잠시 후 다시 시도해주세요.", fontSize = 18.sp, color = Color.Red)
-                else -> Text("잠시만 기다려주세요...", fontSize = 18.sp) // UNKNOWN이지만 isLoading이 false인 경우
+                UserStatus.NEW_USER -> Text(
+                    text = "환영합니다!",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+                UserStatus.EXISTING_USER -> Text(
+                    text = "다시 찾아주셔서 감사합니다!",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+                UserStatus.ERROR -> Text(
+                    text = "오류가 발생했습니다.\n잠시 후 다시 시도해주세요.",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    lineHeight = 40.sp,
+                    textAlign = TextAlign.Center
+                )
+                else -> Text( // UNKNOWN이지만 isLoading이 false인 경우
+                    text = "잠시만 기다려주세요.",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
