@@ -28,9 +28,6 @@ import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.delay
 
-// FileManager가 프로젝트 내에 정의되어 있다고 가정하고 import 합니다.
-// 예: import com.example.foodtap.util.FileManager
-
 @Composable
 fun SigninScreen(navController: NavController, viewModel: SigninViewModel = viewModel()) {
     val userStatus by viewModel.userStatus.observeAsState(UserStatus.UNKNOWN)
@@ -95,7 +92,6 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
         }
     }
 
-    // UI 표시
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,7 +114,7 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
         } else {
             Text(
                 text = "식품 톡톡",
-                fontSize = 36.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 textAlign = TextAlign.Center

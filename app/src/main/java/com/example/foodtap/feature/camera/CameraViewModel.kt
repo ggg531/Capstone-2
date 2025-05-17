@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.foodtap.api.OcrRequest
 import com.example.foodtap.api.OcrResponse
 import com.example.foodtap.api.RetrofitClient
+import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import retrofit2.Call
@@ -42,8 +43,8 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private var tts: TextToSpeech = TextToSpeech(application, this)
     private var isTtsInitialized = false
 
-    private val _dDayDesc = MutableStateFlow<Int?>(null)
-    val dDayDesc: StateFlow<Int?> = _dDayDesc
+    private val _dDayExp = MutableStateFlow<Int?>(null)
+    val dDayExp: StateFlow<Int?> = _dDayExp
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -200,9 +201,20 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         tts.shutdown()
     }
 
-    private val userDesc = 5
-    private val userAllergy = listOf("우유", "대두")
-    fun descDday(): Int? {
+    private var userExp: Int = 5
+    private var userAllergy: List<String> = emptyList()
+
+    init {
+        val context = getApplication<Application>()
+
+        FileManager.createUserExpIfNotExists(context)
+        FileManager.createUserAllergyIfNotExists(context)
+
+        userExp = FileManager.loadUserExp(context)
+        userAllergy = FileManager.loadAllergyList(context)
+    }
+
+    fun expDday(): Int? {
         if (identifiedDesc.value.isBlank()) return null
 
         return try {
@@ -211,23 +223,23 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
             val startDate = java.util.Date()
 
             val dDay = ((endDate.time - startDate.time) / (24 * 60 * 60 * 1000)).toInt()
-            _dDayDesc.value = dDay
+            _dDayExp.value = dDay
             dDay
         } catch (e: Exception) {
-            Log.e("descDday", "날짜 파싱 실패: ${e.message}")
+            Log.e("expDday", "날짜 파싱 실패: ${e.message}")
             null
         }
     }
 
-    fun descFiltering(): Boolean { // userDesc
-        if (identifiedDesc.value.isBlank()) return true
+    fun expFiltering(): Boolean {
+        if (identifiedExpiration .value.isBlank()) return true
 
-        val dDay = descDday()
-        return dDay != null && dDay > userDesc
+        val dDay = expDday()
+        return dDay != null && dDay > userExp
     }
 
 
-    fun allergyFiltering(): Boolean { // userAllergy
+    fun allergyFiltering(): Boolean {
         if (identifiedAllergy.value.isEmpty()) return true
 
         return identifiedAllergy.value.none { userAllergy.contains(it) }

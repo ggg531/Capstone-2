@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +45,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
-import kotlinx.coroutines.delay
 
 @Composable
 fun InitScreen(navController: NavController, viewModel: InitViewModel = viewModel()) {
@@ -53,7 +53,6 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
     val isListening by viewModel.isListening.collectAsState()
     val showDialog by viewModel.showDialog.collectAsState()
     val displayAllergyText by viewModel.displayAllergyText.collectAsState()
-    // val processedAllergyList by viewModel.processedAllergyList.collectAsState() // 직접 사용하지 않으면 주석 처리 가능
     val apiCallStatus by viewModel.apiCallStatus.collectAsState()
 
     Column(
@@ -63,18 +62,13 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 if (!isListening) {
                     viewModel.startListening()
                 }
-                // STT 중지 로직은 startListening 내부 또는 onResults/onError에서 관리됨
-                // else {
-                // viewModel.stopListening() // 이 부분은 불필요할 수 있음
-                // viewModel.tapShowDialog(true) // API 호출 결과에 따라 다이얼로그 표시됨
-                // }
             }
-            .padding(16.dp), // 전체적인 패딩
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (isListening || apiCallStatus == ApiStatus.LOADING) {
-            micAnimation()
+        if ((isListening || apiCallStatus == ApiStatus.LOADING) && !showDialog) {
+            MicAnimation()
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "음성 인식 중입니다.",
@@ -83,13 +77,8 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 color = Color.Black,
                 lineHeight = 40.sp,
                 textAlign = TextAlign.Center,
-                /*
-                fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-                 */
             )
-        } else {
+        } else if (!showDialog) {
             Text(
                 text = "화면을 탭하여 알레르기 성분을 등록하세요.",
                 fontSize = 28.sp,
@@ -102,17 +91,22 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
     }
 
     if (showDialog) {
-        // API 성공적으로 호출되어 결과가 있거나 (빈 리스트 포함), STT/API 오류가 발생했을 때 다이얼로그 표시
         val hasValidResult = apiCallStatus == ApiStatus.SUCCESS && displayAllergyText.isNotBlank() && displayAllergyText != "인식된 알레르기 성분이 없습니다."
-        val sttresult = if (hasValidResult) "$displayAllergyText 성분을 등록하시겠습니까?" else "알레르기 성분을 다시 등록하세요."
+        //val noResult = apiCallStatus == ApiStatus.SUCCESS && (displayAllergyText.isBlank() || displayAllergyText == "인식된 알레르기 성분이 없습니다.")
         val dialogTitle = when {
-            apiCallStatus == ApiStatus.LOADING -> "처리 중..." // 이 경우는 거의 없음 (showDialog는 보통 로딩 후에 true가 됨)
+            apiCallStatus == ApiStatus.LOADING -> "처리 중" // 이 경우는 거의 없음 (showDialog는 보통 로딩 후에 true가 됨)
             hasValidResult -> "보유 알레르기 성분"
-            apiCallStatus == ApiStatus.SUCCESS && (displayAllergyText.isBlank() || displayAllergyText == "인식된 알레르기 성분이 없습니다.") -> "결과 없음"
+            //noResult -> "결과 없음"
             else -> "재등록 필요" // ApiStatus.ERROR 또는 STT 결과 없음 등
         }
+        val dialogText = when {
+            hasValidResult -> "$displayAllergyText 성분을 등록하시겠습니까?"
+            //noResult -> "보유 알레르기 성분이 없습니까?"
+            else -> "알레르기 성분을 다시 등록하세요."
+        }
 
-        LaunchedEffect(showDialog) {
+        LaunchedEffect(apiCallStatus, displayAllergyText) {
+
             val vibrator = context.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator?.vibrate(
@@ -122,11 +116,10 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 @Suppress("DEPRECATION")
                 vibrator?.vibrate(150)
             }
-        }
 
-        LaunchedEffect(sttresult) {
-            delay(500)
-            viewModel.speak(sttresult)
+            if (apiCallStatus != ApiStatus.LOADING) {
+                viewModel.speak(dialogText)
+            }
         }
 
         AlertDialog(
@@ -135,9 +128,9 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = if (hasValidResult) "보유 알레르기 성분" else "재등록 필요",
+                        text = dialogTitle,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -149,22 +142,26 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
-
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = if (hasValidResult) "$displayAllergyText\n성분을 등록하시겠습니까?" else "알레르기 성분을\n다시 등록하세요.",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black,
-                        lineHeight = 40.sp,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    if (apiCallStatus != ApiStatus.LOADING) {
+                        Text(
+                            text = dialogText,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
+                            lineHeight = 40.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    else {
+                        CircularProgressIndicator(color = Main)
+                    }
                 }
             },
             confirmButton = {
-                if (hasValidResult) {
+                if (apiCallStatus != ApiStatus.LOADING && hasValidResult) {
                     Button(
                         onClick = {
                             viewModel.confirmResult()
@@ -174,11 +171,11 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                         },
                         shape = RoundedCornerShape(16.dp),
                         colors =  ButtonDefaults.buttonColors(containerColor = Main),
-                        modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                        modifier = Modifier.size(width = 360.dp, height = 80.dp)
                     ) {
                         Text(
                             text = "확인",
-                            fontSize = 28.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color.White
                         )
@@ -186,20 +183,22 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 }
             },
             dismissButton = {
-                Button(
-                    onClick = {
-                        viewModel.resetResult()
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
-                ) {
-                    Text(
-                        text = if (hasValidResult) "다시 듣기 ? 재등록" else "재등록",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White
-                    )
+                if (apiCallStatus != ApiStatus.LOADING) {
+                    Button(
+                        onClick = { viewModel.resetResult() },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Main),
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .size(width = 360.dp, height = 80.dp)
+                    ) {
+                        Text(
+                            text = "재등록",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                    }
                 }
             },
             onDismissRequest = {}
@@ -208,7 +207,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
 }
 
 @Composable
-fun micAnimation() {
+fun MicAnimation() {
     val infiniteTransition = rememberInfiniteTransition()
 
     val alpha by infiniteTransition.animateFloat(

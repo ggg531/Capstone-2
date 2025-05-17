@@ -3,7 +3,6 @@ package com.example.foodtap.feature.user
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,27 +12,38 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Unsafe
+import com.example.foodtap.util.FileManager
+import kotlinx.coroutines.delay
 
 @Composable
-fun SetExpScreen(navController: NavController) {
-    var count by remember { mutableStateOf(5) } // userExp
+fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
+    val context = LocalContext.current.applicationContext
+
+    var count by remember { mutableStateOf(FileManager.loadUserExp(context)) }
+
+    LaunchedEffect(Unit) {
+        delay(500)
+        viewModel.speak("소비 기한을 변경하고, 중간에 있는 버튼을 클릭하세요.")
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -66,42 +76,35 @@ fun SetExpScreen(navController: NavController) {
         ) {
             Text(
                 text = "-",
-                fontSize = 48.sp,
+                fontSize = 64.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
             )
         }
 
         Button(
-            onClick = { navController.navigate("my") }, //
+            onClick = {
+                viewModel.stopSpeaking()
+                FileManager.saveUserExp(context, count)
+                navController.navigate("my") {
+                    popUpTo("setexp") { inclusive = true }
+                }
+            },
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Main),
             modifier = Modifier
-                .size(width = 330.dp, height = 72.dp)
+                .size(width = 330.dp, height = 80.dp)
                 .align(Alignment.Center)
         ) {
             Text(
-                text = "$count 일",
-                fontSize = 28.sp,
+                text = "${count}일",
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White,
                 modifier = Modifier.semantics {
-                    contentDescription = "최소 소비 기한은 $count 일 입니다."
+                    contentDescription = "최소 소비 기한은 ${count}일 입니다."
                 }
             )
         }
     }
-    /*
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Main)
-            .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-            .background(Color.White),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-    }
-
-     */
 }

@@ -39,7 +39,7 @@ fun TopBar(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Main)
-                .height(80.dp)
+                .height(90.dp)
                 .padding(start = 16.dp)
         ) {
             Icon(
@@ -55,7 +55,7 @@ fun TopBar(navController: NavController) {
             Text(
                 text = "식품 톡톡",
                 color = Color.White,
-                fontSize = 26.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { navController.popBackStack() }
             )

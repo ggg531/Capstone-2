@@ -13,8 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.api.SttRequest
 import com.example.foodtap.api.SttResponse
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,9 +81,9 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     init {
-        viewModelScope.launch { // CoroutineScope(Dispatchers.Main) 대신 viewModelScope 사용
+        viewModelScope.launch {
             delay(500)
-            speak("화면을 탭하여 알레르기 성분을 음성으로 등록하세요", "starttap")
+            speak("화면을 탭하여 알레르기 성분을 등록하세요", "starttap")
         }
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle?) {
@@ -95,8 +94,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                 Log.d("STT", resultText)
                 if (resultText.isNotBlank()) {
                     callStt2AllergyApi(resultText)
-                } else {
-                    // STT 결과가 비어있을 경우 처리
+                } else { // STT 결과가 비어있을 경우 처리
                     _displayAllergyText.value = "" // 또는 "음성 인식 결과가 없습니다."
                     _processedAllergyList.value = emptyList()
                     _apiCallStatus.value = ApiStatus.ERROR // 또는 다른 적절한 상태
@@ -115,6 +113,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
 
             override fun onEndOfSpeech() {
                 _isListening.value = false
+                _apiCallStatus.value = ApiStatus.LOADING
                 _showDialog.value = true
             }
 
@@ -138,7 +137,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                     val sttResponse = response.body()
                     Log.d("API_CALL", "$sttResponse")
                     if (sttResponse != null && sttResponse.allergy.isNotEmpty()) {
-                        _processedAllergyList.value = sttResponse.allergy
+                        _processedAllergyList.value = sttResponse.allergy //
                         _displayAllergyText.value = sttResponse.allergy.joinToString(", ")
                         _apiCallStatus.value = ApiStatus.SUCCESS
                         Log.d("API_SUCCESS", "Processed allergies: ${sttResponse.allergy}")
@@ -196,9 +195,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun confirmResult() {
-        // displayAllergyText 또는 processedAllergyList를 사용하여 등록 로직 수행
-        _registeredAllergyText.value = _displayAllergyText.value // 예시: 화면에 표시된 텍스트를 등록
-        // 또는 _processedAllergyList.value 를 사용하여 서버에 저장하는 로직 추가
+        FileManager.saveAllergyList(getApplication(), _processedAllergyList.value)
         _showDialog.value = false
     }
 

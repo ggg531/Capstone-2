@@ -20,6 +20,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +39,9 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
+    val userExp by viewModel.userExp.collectAsState()
+    val userAllergy by viewModel.userAllergy.collectAsState()
+
     LaunchedEffect(Unit) {
         delay(500)
         viewModel.speak("마이 페이지입니다. 버튼을 클릭하면 구매 기준을 변경할 수 있습니다.")
@@ -57,10 +62,9 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 .fillMaxSize()
                 .weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally
-
         ) {
             Text(
-                text = "식품 톡톡 님", // 닉네임
+                text = "마이 페이지", // 식품 톡톡 님
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -79,7 +83,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             ) {
                 Text(
                     text = "최소 소비 기한",
-                    fontSize = 24.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     modifier = Modifier.padding(start = 8.dp)
@@ -87,15 +91,17 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = { navController.navigate("setexp") },
+                    onClick = {
+                        viewModel.stopSpeaking()
+                        navController.navigate("setexp")
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                    modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
-                        //text = "$userExp 일 이상을 선호합니다.",
-                        text = "userExp 일",
-                        fontSize = 28.sp,
+                        text = "${userExp}일",
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
                         modifier = Modifier.semantics { contentDescription = "" }
@@ -111,7 +117,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             ) {
                 Text(
                     text = "알레르기 주의 성분",
-                    fontSize = 24.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     modifier = Modifier.padding(start = 8.dp)
@@ -119,15 +125,17 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = { navController.navigate("init") },
+                    onClick = {
+                        viewModel.stopSpeaking()
+                        navController.navigate("init")
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                    modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
-                        //text = "$userAllergy을(를) 제외합니다.",
-                        text = "userAllergy",
-                        fontSize = 28.sp,
+                        text = if (userAllergy.isNotEmpty()) "${userAllergy.joinToString(", ")}" else "없음",
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
                         modifier = Modifier.semantics { contentDescription = "" }
@@ -144,6 +152,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier
+                .padding(bottom = 80.dp)
                 .size(width = 330.dp, height = 100.dp)
                 .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
         ) {
@@ -151,13 +160,13 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 imageVector = Icons.Default.PhotoCamera,
                 contentDescription = null,
                 tint = Color.Black,
-                modifier = Modifier.size(48.dp) //64
+                modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "촬영 페이지",
                 color = Color.Black,
-                fontSize = 28.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { contentDescription = "촬영 페이지로 이동" }
             )
