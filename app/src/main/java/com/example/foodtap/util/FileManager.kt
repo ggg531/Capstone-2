@@ -78,16 +78,4 @@ object FileManager {
             null
         }
     }
-
-    // 사용자 정보 (프로필 파일) 삭제 함수 (로그아웃 또는 초기화 시 사용 가능)
-//    fun deleteUserProfile(context: Context) {
-//        val file = File(context.filesDir, USER_PROFILE_FILE_NAME)
-//        if (file.exists()) {
-//            if (file.delete()) {
-//                Log.d("FileManager", "$USER_PROFILE_FILE_NAME deleted successfully.")
-//            } else {
-//                Log.e("FileManager", "Failed to delete $USER_PROFILE_FILE_NAME.")
-//            }
-//        }
-//    }
 }

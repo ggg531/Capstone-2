@@ -27,15 +27,17 @@ fun MainApp() {
 
     Scaffold(
         topBar = {
-            if (currentRoute in listOf("my", "setexp")) {
+            if (currentRoute in listOf("my")) {
                 TopBar(navController)
             }
         },
+        /*
         bottomBar = {
             if (currentRoute in listOf("camera", "my", "setcri", "setui")) {
                 BottomBar(navController)
             }
         }
+         */
     ) {  innerPadding->
         NavHost(
             navController = navController,

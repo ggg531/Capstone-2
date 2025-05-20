@@ -1,7 +1,3 @@
-// TODO: 유통기한도 GPT로 처리하기
-// TODO: 인식 안 된 경우 공백으로 처리
-
-
 package com.example.foodtap.feature.camera
 
 import android.os.Build
@@ -17,7 +13,9 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -55,12 +53,14 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
     val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
     val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
+    val dDay by viewModel.dDayExp.collectAsStateWithLifecycle()
 
     // Clova OCR API 호출을 담당하는 Analyzer 인스턴스 생성
     // ClovaOcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
@@ -130,24 +130,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
-        //verticalArrangement = Arrangement.SpaceBetween
-
-    ) {/*
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(width = 330.dp, height = 72.dp)
-                .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
-                .background(Show, RoundedCornerShape(16.dp))
-        ) {
-            Text(
-                text = "식품 정보를 촬영하세요.",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
-            )
-        }
-*/
+    ) {
         Button(
             onClick = {
                 viewModel.stopSpeaking()
@@ -158,6 +141,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier
+                .padding(bottom = 80.dp)
                 .size(width = 330.dp, height = 100.dp)
                 .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
         ) {
@@ -171,7 +155,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             Text(
                 text = "마이 페이지",
                 color = Color.Black,
-                fontSize = 28.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { contentDescription = "마이 페이지로 이동" }
             )
@@ -179,8 +163,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     if (showDialog) {
-        //val isSafe = viewModel.expFiltering() && viewModel.allergyFiltering()
-        val isSafe = viewModel.allergyFiltering()
+        val isSafe = viewModel.expFiltering() && viewModel.allergyFiltering()
 
         LaunchedEffect(showDialog) {
             val vibrator = ctx.getSystemService(Vibrator::class.java)
@@ -200,13 +183,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
 
         AlertDialog(
             containerColor = if (isSafe) Safe else Unsafe,
-
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "식품 정보",
                         fontSize = 32.sp,
@@ -216,40 +198,58 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 }
             },
             text = {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "소비 기한",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = identifiedExpiration.ifBlank { "없음" }, // dday도 추가
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    Text(
-                        text = "알레르기 성분",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = identifiedAllergy.toString().ifBlank { "없음" }, // []도 뜸
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    Text(
-                        text = "식품 상세 정보",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = identifiedDesc.ifBlank { "없음" },
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
+                Box(modifier = Modifier.height(330.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Text(
+                            text = "소비 기한",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = if (identifiedDesc.isBlank() || dDay == null) "없음" else "$identifiedExpiration (D-$dDay)",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Light,
+                            color = Color.Black,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        Text(
+                            text = "알레르기 성분",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = if (identifiedAllergy.isEmpty()) "없음" else identifiedAllergy.joinToString(", "),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Light,
+                            color = Color.Black,
+                            lineHeight = 30.sp,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        Text(
+                            text = "식품 상세 정보",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(100.dp)
+                                .verticalScroll(scrollState)
+                        ) {
+                            Text(
+                                text = identifiedDesc.ifBlank { "없음" },
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Light,
+                                color = Color.Black,
+                                lineHeight = 25.sp,
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -260,11 +260,11 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors =  ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                    modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
                         text = "확인",
-                        fontSize = 28.sp,
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White
                     )
@@ -278,17 +278,18 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 일 까지 입니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
                             append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
-                            append(if (identifiedDesc.isEmpty()) identifiedDesc else "") //
                         }
                         viewModel.speak(listen)
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors =  ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
                         text = "음성으로 듣기",
-                        fontSize = 28.sp,
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White
                     )

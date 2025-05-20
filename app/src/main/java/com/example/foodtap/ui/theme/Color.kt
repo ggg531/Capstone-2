@@ -17,11 +17,11 @@ val Unsafe = Color(0xFFFE729F)
 */
 
 
-//val Main = Color(0xFF1D4D9F)
-val Main = Color(0xFF275EBE)
+val Main = Color(0xFF1D4D9F)
+//val Main = Color(0xFF275EBE)
 
 val Bottom = Color(0xFFE5E5E5)
-val Show = Color(0xFF86C7D3)
+val Show = Color(0xFF7CBFE2)
 
 val Safe = Color(0xFF91cbfb)
 // val Safe = Color(0xFF8CABD9)

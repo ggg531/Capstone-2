@@ -76,8 +76,6 @@ dependencies {
     implementation(libs.text.recognition.korean)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
-
-    // ocr
     implementation(libs.text.recognition.korean)
 
     // api

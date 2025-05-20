@@ -41,6 +41,8 @@ import com.example.foodtap.ui.theme.Show
 import kotlinx.coroutines.delay
 import com.example.foodtap.api.UserData
 import com.example.foodtap.util.FileManager
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
@@ -71,10 +73,9 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 .fillMaxSize()
                 .weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally
-
         ) {
             Text(
-                text = "식품 톡톡 님", // 닉네임
+                text = "마이 페이지", // 식품 톡톡 님
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -93,7 +94,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             ) {
                 Text(
                     text = "최소 소비 기한",
-                    fontSize = 24.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     modifier = Modifier.padding(start = 8.dp)
@@ -101,10 +102,13 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = { navController.navigate("setexp") },
+                    onClick = {
+                        viewModel.stopSpeaking()
+                        navController.navigate("setexp")
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                    modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
                         //text = "$userExp 일 이상을 선호합니다.",
@@ -125,7 +129,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             ) {
                 Text(
                     text = "알레르기 주의 성분",
-                    fontSize = 24.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     modifier = Modifier.padding(start = 8.dp)
@@ -133,10 +137,13 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = { navController.navigate("init") },
+                    onClick = {
+                        viewModel.stopSpeaking()
+                        navController.navigate("init")
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 72.dp)
+                    modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
                         //text = "$userAllergy을(를) 제외합니다.",
@@ -158,6 +165,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier
+                .padding(bottom = 80.dp)
                 .size(width = 330.dp, height = 100.dp)
                 .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
         ) {
@@ -165,13 +173,13 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 imageVector = Icons.Default.PhotoCamera,
                 contentDescription = null,
                 tint = Color.Black,
-                modifier = Modifier.size(48.dp) //64
+                modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "촬영 페이지",
                 color = Color.Black,
-                fontSize = 28.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { contentDescription = "촬영 페이지로 이동" }
             )

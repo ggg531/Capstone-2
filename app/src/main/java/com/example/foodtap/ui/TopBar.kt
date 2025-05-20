@@ -55,7 +55,7 @@ fun TopBar(navController: NavController) {
             Text(
                 text = "식품 톡톡",
                 color = Color.White,
-                fontSize = 26.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { navController.popBackStack() }
             )
