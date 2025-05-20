@@ -39,7 +39,7 @@ fun TopBar(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Main)
-                .height(90.dp)
+                .height(80.dp)
                 .padding(start = 16.dp)
         ) {
             Icon(

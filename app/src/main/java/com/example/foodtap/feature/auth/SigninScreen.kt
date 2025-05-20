@@ -79,7 +79,7 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
             UserStatus.ERROR -> {
                 Log.e("SigninScreen", "Error occurred. Navigating to initScreen as fallback.")
                 // 오류 발생 시 기본 화면으로 이동 (예: initScreen)
-                viewModel.speak("오류가 발생했습니다.\n잠시 후 다시 시도해주세요.")
+                viewModel.speak("오류가 발생했습니다.")
                 delay(3000)
                 navController.navigate("init") {
                     popUpTo("signin") { inclusive = true }
@@ -136,7 +136,7 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
                     textAlign = TextAlign.Center
                 )
                 UserStatus.ERROR -> Text(
-                    text = "오류가 발생했습니다.\n잠시 후 다시 시도해주세요.",
+                    text = "오류가 발생했습니다.",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,

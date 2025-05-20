@@ -165,7 +165,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                     Button(
                         onClick = {
                             viewModel.confirmResult()
-                            navController.navigate("camera") {
+                            navController.navigate("my") {
                                 popUpTo("init") { inclusive = true }
                             }
                         },
