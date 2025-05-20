@@ -20,10 +20,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -34,13 +39,22 @@ import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Show
 import kotlinx.coroutines.delay
+import com.example.foodtap.api.UserData
+import com.example.foodtap.util.FileManager
 
 @Composable
 fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
+    val context = LocalContext.current
+    var userData by remember { mutableStateOf<UserData?>(null) }
+
     LaunchedEffect(Unit) {
+        userData = FileManager.loadUserData(context)
         delay(500)
         viewModel.speak("마이 페이지입니다. 버튼을 클릭하면 구매 기준을 변경할 수 있습니다.")
     }
+
+    val userAllergyDisplay = userData?.allergy?.split(",")?.joinToString(", ")?.takeIf { it.isNotBlank() } ?: "미설정"
+    val userExpDisplay = userData?.expi_date?.takeIf { it.isNotBlank() }?.let { "$it 일" } ?: "미설정"
 
     Column(
         modifier = Modifier
@@ -94,7 +108,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 ) {
                     Text(
                         //text = "$userExp 일 이상을 선호합니다.",
-                        text = "userExp 일",
+                        text = userExpDisplay,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
@@ -126,7 +140,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 ) {
                     Text(
                         //text = "$userAllergy을(를) 제외합니다.",
-                        text = "userAllergy",
+                        text = userAllergyDisplay,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,

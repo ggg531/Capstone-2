@@ -1,6 +1,7 @@
 package com.example.foodtap.feature.init
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
@@ -13,6 +14,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.api.SttRequest
 import com.example.foodtap.api.SttResponse
+import com.example.foodtap.api.UserData
+import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -53,6 +56,10 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
 
     private val _apiCallStatus = MutableStateFlow(ApiStatus.IDLE)
     val apiCallStatus: StateFlow<ApiStatus> = _apiCallStatus.asStateFlow()
+
+    // 알레르기 저장 API 호출 상태 추가
+    private val _saveAllergyStatus = MutableStateFlow(ApiStatus.IDLE)
+    val saveAllergyStatus: StateFlow<ApiStatus> = _saveAllergyStatus.asStateFlow()
 
     private var tts: TextToSpeech = TextToSpeech(application, this)
     private var isTtsInitialized = false
@@ -196,10 +203,52 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun confirmResult() {
-        // displayAllergyText 또는 processedAllergyList를 사용하여 등록 로직 수행
-        _registeredAllergyText.value = _displayAllergyText.value // 예시: 화면에 표시된 텍스트를 등록
-        // 또는 _processedAllergyList.value 를 사용하여 서버에 저장하는 로직 추가
-        _showDialog.value = false
+        if (_processedAllergyList.value.isNotEmpty()) {
+            _saveAllergyStatus.value = ApiStatus.LOADING
+            val userId = FileManager.getOrCreateId(getApplication()) // 사용자 ID 가져오기
+            val allergyListToSave = _processedAllergyList.value
+
+            // API 요청 본문은 SttResponse 형태를 사용 (내부에 List<String> allergy 필드 있음)
+            val request = SttResponse(allergy = allergyListToSave)
+
+            Log.d("API_CALL_PUT_ALLERGY", "Requesting putAllergy for user: $userId with allergies: $allergyListToSave")
+
+            RetrofitClient.put_allergy.putAllergy(userId, request).enqueue(object : Callback<String> {
+                override fun onResponse(call: Call<String>, response: Response<String>) {
+                    if (response.isSuccessful) {
+                        // 로컬 파일에도 변경된 알레르기 정보 업데이트
+                        val currentLocalUserData = FileManager.loadUserData(getApplication())
+                        val updatedUserData = UserData(
+                            id = userId,
+                            allergy = allergyListToSave.joinToString(","), // 쉼표로 구분된 문자열로 저장
+                            expi_date = currentLocalUserData?.expi_date ?: "5" // 기존 소비기한 유지 또는 기본값
+                        )
+                        FileManager.saveUserData(getApplication(), updatedUserData)
+                        Log.d("InitViewModel", "Local UserData updated with new allergies.")
+
+                        _saveAllergyStatus.value = ApiStatus.SUCCESS
+                    } else {
+                        // 에러 처리는 하지 말라는 요청에 따라 별도 처리 없음 (로그만 남김)
+                        Log.e("API_PUT_ALLERGY_ERROR", "Failed to save allergies. Code: ${response.code()}, Message: ${response.message()}")
+                        _saveAllergyStatus.value = ApiStatus.ERROR // 실패 상태로 설정 (UI에서 에러 처리를 안해도 상태는 변경)
+                    }
+                    // 성공/실패 여부와 관계없이 다이얼로그는 닫도록 InitScreen에서 처리
+                }
+
+                override fun onFailure(call: Call<String>, t: Throwable) {
+                    // 에러 처리는 하지 말라는 요청에 따라 별도 처리 없음 (로그만 남김)
+                    Log.e("API_PUT_ALLERGY_FAILURE", "Network failure while saving allergies: ${t.message}", t)
+                    _saveAllergyStatus.value = ApiStatus.ERROR // 실패 상태로 설정
+                }
+            })
+        } else {
+            Log.w("API_PUT_ALLERGY_SKIP", "No allergies to save.")
+            // 저장할 알레르기가 없는 경우, 바로 성공으로 간주하고 화면 전환을 유도할 수 있도록 SUCCESS 상태로 변경
+            // 또는 특정 메시지를 표시하고 사용자가 다이얼로그를 닫도록 유도할 수도 있음.
+            // 여기서는 "my"로 이동하는 로직을 위해 SUCCESS로 설정
+            _saveAllergyStatus.value = ApiStatus.SUCCESS
+        }
+        _showDialog.value = false // API 호출 시도 후 다이얼로그 닫기
     }
 
     fun resetResult() {

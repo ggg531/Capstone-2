@@ -55,3 +55,11 @@ interface SttService {
     fun stt2Allergy(@Body request: SttRequest): Call<SttResponse>
 }
 
+interface PutAllergyService {
+    @PUT("/allergy/{id}")
+    fun putAllergy(
+        @Path("id") id: String,
+        @Body request: SttResponse
+    ): Call<String>
+}
+

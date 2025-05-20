@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.foodtap.api.RetrofitClient
+import com.example.foodtap.api.UserData
+import com.example.foodtap.util.FileManager
 // UserData는 현재 ViewModel에서 직접 사용하지 않지만, RetrofitClient가 참조할 수 있음
 // import com.example.foodtap.api.UserData
 import retrofit2.Call
@@ -19,6 +21,7 @@ enum class UserStatus {
     UNKNOWN, // 초기 상태
     NEW_USER,
     EXISTING_USER,
+    LOADING_USER_DATA, // 기존 사용자 데이터 로딩 중 상태 추가
     ERROR
 }
 
@@ -61,6 +64,7 @@ class SigninViewModel(application: Application) : AndroidViewModel(application),
                 } else if (response.code() == 409) { // HTTP 409 Conflict - 기존 사용자
                     Log.d("SigninViewModel", "PUT failed (Existing User). Code: ${response.code()}")
                     _userStatus.value = UserStatus.EXISTING_USER
+                    fetchUserData(userId)
                 } else { // 그 외 오류
                     Log.e("SigninViewModel", "PUT failed. Code: ${response.code()}, Message: ${response.message()}")
                     _userStatus.value = UserStatus.ERROR
@@ -70,6 +74,38 @@ class SigninViewModel(application: Application) : AndroidViewModel(application),
             override fun onFailure(call: Call<String>, t: Throwable) {
                 _isLoading.value = false
                 Log.e("SigninViewModel", "PUT error: ${t.message}", t)
+                _userStatus.value = UserStatus.ERROR
+            }
+        })
+    }
+
+    private fun fetchUserData(userId: String) {
+        _userStatus.value = UserStatus.LOADING_USER_DATA
+        Log.d("SigninViewModel", "Fetching user data for ID: $userId (GET /user/{id})")
+
+        RetrofitClient.get_instance.getUser(userId).enqueue(object : Callback<UserData> {
+            override fun onResponse(call: Call<UserData>, response: Response<UserData>) {
+                if (response.isSuccessful) {
+                    val fetchedUserData = response.body()
+                    if (fetchedUserData != null) {
+                        // API로부터 받은 UserData를 FileManager를 통해 저장
+                        FileManager.saveUserData(getApplication(), fetchedUserData)
+                        Log.d("SigninViewModel", "Successfully fetched and saved UserData: $fetchedUserData")
+                        _userStatus.value = UserStatus.EXISTING_USER
+                    } else {
+                        Log.e("SigninViewModel", "Fetched UserData is null. Body: ${response.body()}")
+                        // 기존 사용자 프로필 파일이 있다면 삭제하거나, 오류 상태로 처리
+                        // FileManager.deleteUserProfile(getApplication()) // 필요에 따라
+                        _userStatus.value = UserStatus.ERROR
+                    }
+                } else {
+                    Log.e("SigninViewModel", "Failed to fetch UserData. Code: ${response.code()}, Message: ${response.message()}")
+                    _userStatus.value = UserStatus.ERROR
+                }
+            }
+
+            override fun onFailure(call: Call<UserData>, t: Throwable) {
+                Log.e("SigninViewModel", "Error fetching UserData: ${t.message}", t)
                 _userStatus.value = UserStatus.ERROR
             }
         })

@@ -62,4 +62,13 @@ object RetrofitClient {
             .build()
             .create(ClovaOcrService::class.java)
     }
+
+    val put_allergy: PutAllergyService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().build())
+            .build()
+            .create(PutAllergyService::class.java)
+    }
 }

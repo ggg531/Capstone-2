@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun InitScreen(navController: NavController, viewModel: InitViewModel = viewModel()) {
@@ -55,6 +56,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
     val displayAllergyText by viewModel.displayAllergyText.collectAsState()
     // val processedAllergyList by viewModel.processedAllergyList.collectAsState() // 직접 사용하지 않으면 주석 처리 가능
     val apiCallStatus by viewModel.apiCallStatus.collectAsState()
+    val saveAllergyStatus by viewModel.saveAllergyStatus.collectAsState() // 알레르기 저장 API 상태
 
     Column(
         modifier = Modifier
@@ -98,6 +100,22 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                 lineHeight = 40.sp,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+
+    // 알레르기 저장 API 성공 시 "my" 화면으로 이동
+    LaunchedEffect(saveAllergyStatus) {
+        // collectLatest를 사용하여 최신 상태만 처리하고, 이전 네비게이션 시도를 취소 (중복 방지)
+        viewModel.saveAllergyStatus.collectLatest { status ->
+            if (status == ApiStatus.SUCCESS) {
+                navController.navigate("my") {
+                    popUpTo("init") { inclusive = true } // InitScreen을 백스택에서 제거
+                    launchSingleTop = true // "my" 화면이 이미 스택에 있다면 새로 만들지 않음
+                }
+                // 성공 후 상태를 IDLE로 되돌려 중복 네비게이션 방지
+                // viewModel.resetSaveStatus() // ViewModel에 이런 함수를 만들어서 호출 가능
+            }
+            // 에러 처리는 하지 않도록 요청받았으므로, ApiStatus.ERROR에 대한 별도 UI 반응 없음
         }
     }
 

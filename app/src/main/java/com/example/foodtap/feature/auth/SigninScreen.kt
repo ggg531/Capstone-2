@@ -31,17 +31,16 @@ import kotlinx.coroutines.delay
 @Composable
 fun SigninScreen(navController: NavController, viewModel: SigninViewModel = viewModel()) {
     val userStatus by viewModel.userStatus.observeAsState(UserStatus.UNKNOWN)
-    val isLoading by viewModel.isLoading.observeAsState(false)
+    val isLoadingInitialCheck by viewModel.isLoading.observeAsState(true) // 초기 ID 확인 중 로딩 상태
     val context = LocalContext.current
 
     // 1. 사용자 ID 가져오기 및 사용자 상태 확인 요청
     LaunchedEffect(Unit) {
         viewModel.speak("식품 톡톡에 오신 것을 환영합니다!")
 
-        // 실제 ID 생성 로직으로 대체해야 합니다.
-        var userId: String? = null
+        val userId: String
         try {
-            userId = FileManager.getOrCreateId(context) // 실제 ID 생성/가져오기 로직
+            userId = FileManager.getOrCreateId(context)
             Log.d("SigninScreen", "Generated User ID: $userId")
         } catch (e: Exception) {
             Log.e("SigninScreen", "Failed to get or create user ID: ${e.message}", e)
@@ -55,36 +54,37 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
 
     // 2. 사용자 상태에 따른 네비게이션 처리
     LaunchedEffect(userStatus) {
-        if (isLoading) return@LaunchedEffect // 로딩 중에는 네비게이션 로직을 실행하지 않음
+        // 로딩 중이거나 (PUT API 또는 GET API) 아직 상태 모를 때는 네비게이션 로직 실행하지 않음
+        if (userStatus == UserStatus.LOADING_USER_DATA || userStatus == UserStatus.UNKNOWN || isLoadingInitialCheck) {
+            return@LaunchedEffect
+        }
 
         when (userStatus) {
             UserStatus.NEW_USER -> {
                 Log.d("SigninScreen", "Navigating to initScreen for new user.")
-                // 신규 사용자의 경우, TTS 안내 후 잠시 대기하고 이동하거나 바로 이동
-                delay(1000) // TTS 메시지 등을 위한 약간의 딜레이 (선택 사항)
-                navController.navigate("init") { // 사용자가 initScreen으로 명시
-                    popUpTo("signin") { inclusive = true }
-                }
-            }
-            UserStatus.EXISTING_USER -> {
-                Log.d("SigninScreen", "Navigating to my screen for existing user.")
-                // 기존 사용자의 경우, TTS 안내 후 잠시 대기하고 이동하거나 바로 이동
-                delay(1000) // TTS 메시지 등을 위한 약간의 딜레이 (선택 사항)
-                navController.navigate("my") { // 사용자가 my 스크린으로 명시
-                    popUpTo("signin") { inclusive = true }
-                }
-            }
-            UserStatus.ERROR -> {
-                Log.e("SigninScreen", "Error occurred. Navigating to initScreen as fallback.")
-                // 오류 발생 시 기본 화면으로 이동 (예: initScreen)
                 delay(1000)
                 navController.navigate("init") {
                     popUpTo("signin") { inclusive = true }
                 }
             }
-            UserStatus.UNKNOWN -> {
-                // 초기 상태이거나 아직 API 응답이 오지 않은 경우 대기
-                Log.d("SigninScreen", "User status is UNKNOWN. Waiting for API response.")
+            UserStatus.EXISTING_USER -> {
+                // UserData가 ViewModel에 로드된 후 이 상태가 됨
+                Log.d("SigninScreen", "Navigating to my screen for existing user. UserData should be available.")
+                delay(1000)
+                navController.navigate("my") {
+                    popUpTo("signin") { inclusive = true }
+                }
+            }
+            UserStatus.ERROR -> {
+                Log.e("SigninScreen", "Error occurred during sign-in process. Navigating to initScreen as fallback.")
+                delay(1000)
+                navController.navigate("init") { // 오류 시 기본 화면으로 이동
+                    popUpTo("signin") { inclusive = true }
+                }
+            }
+            else -> {
+                // UserStatus.LOADING_USER_DATA, UserStatus.UNKNOWN, 또는 isLoadingInitialCheck가 true인 경우는 위에서 처리됨
+                Log.d("SigninScreen", "User status is $userStatus. Waiting or already handled.")
             }
         }
     }
@@ -95,13 +95,19 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (isLoading || userStatus == UserStatus.UNKNOWN) { // 로딩 중이거나 아직 상태 모를 때
+        if (isLoadingInitialCheck || userStatus == UserStatus.UNKNOWN || userStatus == UserStatus.LOADING_USER_DATA) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
-            Text("사용자 정보를 확인 중입니다...", fontSize = 18.sp)
+            Text(
+                when (userStatus) {
+                    UserStatus.LOADING_USER_DATA -> "사용자 정보를 불러오는 중입니다..."
+                    else -> "사용자 정보를 확인 중입니다..."
+                },
+                fontSize = 18.sp
+            )
         } else {
             Text(
-                text = "식품 톡톡", // 문구는 자유롭게 수정
+                text = "식품 톡톡",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -112,7 +118,7 @@ fun SigninScreen(navController: NavController, viewModel: SigninViewModel = view
                 UserStatus.NEW_USER -> Text("환영합니다! 초기 설정 화면으로 이동합니다.", fontSize = 18.sp)
                 UserStatus.EXISTING_USER -> Text("다시 찾아주셔서 감사합니다! 내 정보 화면으로 이동합니다.", fontSize = 18.sp)
                 UserStatus.ERROR -> Text("오류가 발생했습니다. 잠시 후 다시 시도해주세요.", fontSize = 18.sp, color = Color.Red)
-                else -> Text("잠시만 기다려주세요...", fontSize = 18.sp) // UNKNOWN이지만 isLoading이 false인 경우
+                else -> Text("잠시만 기다려주세요...", fontSize = 18.sp)
             }
         }
     }
