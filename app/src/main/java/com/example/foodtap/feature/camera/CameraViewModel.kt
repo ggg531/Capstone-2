@@ -1,6 +1,7 @@
 package com.example.foodtap.feature.camera
 
 import android.app.Application
+import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -201,17 +202,17 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         tts.shutdown()
     }
 
-    private var userExp: Int = 5
-    private var userAllergy: List<String> = emptyList()
+//    private var userExp: Int = 5
+ //   private var userAllergy: List<String> = emptyList()
 
     init {
         val context = getApplication<Application>()
 
-        FileManager.createUserExpIfNotExists(context)
-        FileManager.createUserAllergyIfNotExists(context)
-
-        userExp = FileManager.loadUserExp(context)
-        userAllergy = FileManager.loadAllergyList(context)
+//        FileManager.createUserExpIfNotExists(context)
+//        FileManager.createUserAllergyIfNotExists(context)
+//
+//        userExp = FileManager.loadUserExp(context)
+//        userAllergy = FileManager.loadAllergyList(context)
     }
 
     fun expDday(): Int? {
@@ -231,18 +232,30 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    fun expFiltering(): Boolean {
+    fun expFiltering(ctx : Context): Boolean {
         if (identifiedExpiration .value.isBlank()) return true
 
+        val userExp = FileManager.loadUserData(ctx)?.expi_date
+
         val dDay = expDday()
-        return dDay != null && dDay > userExp
+        if (userExp != null) {
+            return dDay != null && dDay > userExp.toInt()
+        }
+
+        return true
     }
 
 
-    fun allergyFiltering(): Boolean {
+    fun allergyFiltering(ctx : Context): Boolean {
         if (identifiedAllergy.value.isEmpty()) return true
 
-        return identifiedAllergy.value.none { userAllergy.contains(it) }
+        val userAllergy = FileManager.loadUserData(ctx)?.allergy
+
+        if (userAllergy != null) {
+            return identifiedAllergy.value.none { userAllergy.contains(it) }
+        }
+
+        return true
     }
 
 

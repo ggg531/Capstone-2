@@ -163,7 +163,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     if (showDialog) {
-        val isSafe = viewModel.expFiltering() && viewModel.allergyFiltering()
+        val isSafe = viewModel.expFiltering(ctx) && viewModel.allergyFiltering(ctx)
 
         LaunchedEffect(showDialog) {
             val vibrator = ctx.getSystemService(Vibrator::class.java)
