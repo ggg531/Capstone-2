@@ -34,7 +34,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.foodtap.feature.ocr.ClovaOcrAnalyzer
+import com.example.foodtap.feature.ocr.OcrAnalyzer // OcrAnalyzer import
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Show
@@ -47,9 +47,6 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() } // 이미지 분석을 위한 백그라운드 Executor
-    val apiCallExecutor = remember { Executors.newSingleThreadExecutor() } // API 호출을 위한 별도 Executor (필요시, Retrofit은 자체 스레드 풀 사용)
-
-    val ocrTextList = remember { mutableStateListOf<String>() }
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
@@ -62,28 +59,22 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
     val dDay by viewModel.dDayExp.collectAsStateWithLifecycle()
 
-    // Clova OCR API 호출을 담당하는 Analyzer 인스턴스 생성
-    // ClovaOcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
-    val clovaOcrAnalyzer = remember {
-        ClovaOcrAnalyzer(executor = executor) { inferTextLines ->
-            // 이 람다 함수는 ClovaOcrAnalyzer에서 API 응답을 받은 후 메인 스레드에서 호출됨
-            // inferTextLines는 Clova API에서 인식된 텍스트 라인들의 String임
-            Log.d("CameraScreen", "Received OCR lines from Analyzer: $inferTextLines")
+    // OcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
+    // OcrAnalyzer는 ML Kit OCR을 수행하고, 그 결과를 외부 API로 전송한 후 최종 응답을 콜백으로 전달합니다.
+    val ocrAnalyzer = remember {
+        OcrAnalyzer(executor = executor) { ocrResponse -> // TextRecognizer 인스턴스를 생성자에서 제거
+            Log.d("CameraScreen", "Received processed OCR response from Analyzer: $ocrResponse")
 
-            viewModel.clovaAnalyze(inferTextLines)
+            if (isScanning) { // isScanning이 true일 때만 OCR 결과 처리
+                viewModel.handleProcessedOcrResponse(ocrResponse) // ViewModel의 새로운 함수 호출
+            }
         }
     }
 
     // ImageAnalysis 유스케이스 설정 및 분석기 연결
+    // OcrAnalyzer의 create() 메서드를 사용하여 ImageAnalysis 인스턴스를 생성
     val imageAnalysis = remember {
-        ImageAnalysis.Builder()
-            // .setTargetResolution(Size(640, 480)) // 원하는 해상도 설정 (API 요구사항 고려)
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // 가장 최신 프레임만 분석
-            .build()
-            .also {
-                // Analyzer와 실행할 Executor 연결
-                it.setAnalyzer(executor, clovaOcrAnalyzer)
-            }
+        ocrAnalyzer.create()
     }
 
     LaunchedEffect(Unit) {
@@ -102,7 +93,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     // 카메라 미리보기 및 이미지 분석 유스케이스 바인딩
-    LaunchedEffect(previewView, imageAnalysis) { // imageAnalysis가 변경될 때 재실행
+    // isScanning 상태에 따라 바인딩/언바인딩 제어
+    LaunchedEffect(previewView, imageAnalysis, isScanning) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
         val cameraProvider = cameraProviderFuture.get()
         val preview = Preview.Builder().build().also {
@@ -111,9 +103,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
         try {
-            cameraProvider.unbindAll()
-            // Preview 유스케이스와 ImageAnalysis 유스케이스를 함께 바인딩
-            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+            cameraProvider.unbindAll() // 이전에 바인딩된 모든 유스케이스를 해제
+            if (isScanning) { // isScanning이 true일 때만 바인딩
+                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -134,7 +127,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         Button(
             onClick = {
                 viewModel.stopSpeaking()
-                viewModel.setScanningState(false)
+                viewModel.setScanningState(false) // 다른 화면으로 이동 시 스캔 중지
                 navController.navigate("my") {
                     //
                 }

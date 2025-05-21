@@ -6,7 +6,7 @@ import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.example.foodtap.api.OcrRequest
-import com.example.foodtap.api.OcrResponse
+import com.example.foodtap.api.OcrResponse // OcrResponse import
 import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,8 +20,6 @@ import java.util.Locale
 class CameraViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
     private val _isScanning = MutableStateFlow(true)
     val isScanning: StateFlow<Boolean> = _isScanning
-
-    private val _ocrTextList = mutableListOf<String>()
 
     private val _nutritionText = MutableStateFlow("")
     val nutritionText: StateFlow<String> = _nutritionText
@@ -47,10 +45,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _dDayExp = MutableStateFlow<Int?>(null)
     val dDayExp: StateFlow<Int?> = _dDayExp
 
-    fun setScanningState(isScanning: Boolean) { // 새로 추가된 함수
-        _isScanning.value = isScanning
-    }
-
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             tts.language = Locale.KOREAN
@@ -71,133 +65,54 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    fun addOcrResult(result: String) {
-        if (result.isNotBlank() && _isScanning.value) {
-            val lines = result.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
-            _ocrTextList.addAll(lines)
-        }
+    fun setScanningState(isScanning: Boolean) {
+        _isScanning.value = isScanning
     }
 
-    fun clovaAnalyze(inferTextLines: String) {
-        if (_isScanning.value) {  // 스캔 중일 때만 처리
-            // 받은 텍스트 라인들을 CameraScreen의 상태에 반영
-            _ocrTextList.clear()
-            _ocrTextList.addAll(listOf(inferTextLines))
+    // OcrAnalyzer로부터 직접 OcrResponse 객체를 받는 함수
+    fun handleProcessedOcrResponse(ocrResponse: OcrResponse?) {
+        if (_isScanning.value && ocrResponse != null) {
+            val approval = ocrResponse.approval
+            val allergy = ocrResponse.allergy
+            val desc = ocrResponse.desc
+            val expiration = ocrResponse.expiration
 
-            if (_ocrTextList.isNotEmpty()) {
+            Log.d("CameraViewModel", "Handling processed OCR response: approval=$approval, allergy=$allergy, desc=$desc, expiration=$expiration")
 
-                Log.d("CameraScreen", "Triggering external approval API call with: $_ocrTextList")
+            if (approval) {
+                //val temp = _identifiedAllergy.value
+                //Log.d("CameraViewModel", "before union allergy=$temp")
+                _identifiedAllergy.value = _identifiedAllergy.value.union(allergy).toList()
+                //val temp2 = _identifiedAllergy.value
+                //Log.d("CameraViewModel", "after union allergy=$temp2")
+                if (expiration.isNotEmpty() && _dDayExp.value == null) {
+                    _identifiedExpiration.value = expiration
+                }
 
-                // 외부 API 호출 및 결과 처리
-                val request = OcrRequest(ocr = _ocrTextList.toString()) // OcrRequest 데이터 클래스 필요
-                RetrofitClient.get_approval.getApproval(request).enqueue(object : Callback<OcrResponse> {
-                    override fun onResponse(call: Call<OcrResponse>, response: Response<OcrResponse>) {
-                        if (response.isSuccessful) {
-                            val approval = response.body()?.approval == true
-                            val allergy = response.body()?.allergy
-                            val desc = response.body()?.desc
-                            val expiration = response.body()?.expiration
+                if (_dDayExp.value == null) {
+                    _dDayExp.value = expDday()
+                }
+                _identifiedDesc.value = desc
+                Log.d("CameraViewModel", "Identified exp: ${_identifiedExpiration.value}, Identified dDay: ${dDayExp.value}")
 
-                            Log.d("API", "approval: $approval, allergy: $allergy, desc: $desc, expiration: $expiration")
-
-                            // 외부 API 응답 결과에 따라 UI 상태 업데이트
-                            if (approval &&  desc != null) {
-                                if (!allergy.isNullOrEmpty() && !_identifiedAllergy.value.containsAll(allergy)) {
-                                    _identifiedDesc.value += desc
-                                }
-
-                                if (allergy != null) {
-                                    _identifiedAllergy.value = _identifiedAllergy.value.union(allergy).toList()
-                                }
-                                if (!expiration.isNullOrEmpty()) {
-                                    _identifiedExpiration.value = expiration
-                                }
-
-                                _showDialog.value = true // 다이얼로그 표시
-                                _isScanning.value = false // 스캔 중지
-                            } else {
-                                // 승인되지 않거나 결과가 불완전한 경우 처리
-                                Log.d("API", "Approval denied or incomplete result.")
-                                // 필요에 따라 사용자에게 알리거나 스캔을 계속할 수 있습니다.
-                            }
-
-                        } else {
-                            Log.e("API", "서버 응답 오류: ${response.code()}")
-                            // 오류 처리 (사용자에게 알림 등)
-                        }
-                        // API 호출 완료 후 필요한 상태 정리 (예: ocrTextList.clear() 등)
-                        // ocrTextList.clear() // 다음 프레임의 결과를 받기 위해 클리어
-                    }
-
-                    override fun onFailure(call: Call<OcrResponse>, t: Throwable) {
-                        Log.e("API", "요청 실패: ${t.message}", t)
-                        // 오류 처리 (사용자에게 알림 등)
-                        // API 호출 완료 후 필요한 상태 정리
-                        // ocrTextList.clear()
-                    }
-                })
-
-                // 주의: API 호출 후 ocrTextList를 바로 clear하면 다음 프레임 결과와 섞이지 않지만,
-                // 여러 프레임에 걸친 텍스트를 모아서 분석해야 한다면 clear 시점을 조절해야 합니다.
-
+                _showDialog.value = true
+                _isScanning.value = false // 성공적으로 정보를 얻으면 스캔 중지
             } else {
-                // 추출된 영양 정보나 유통기한이 없는 경우
-                Log.d("CameraScreen", "No significant text found for processing.")
-                // 필요에 따라 사용자에게 알리거나 스캔을 계속합니다.
-                // ocrTextList.clear() // 다음 프레임 결과를 위해 클리어
+                Log.d("CameraViewModel", "Approval denied or incomplete result from processed OCR.")
             }
+        } else if (ocrResponse == null) {
+            Log.d("CameraViewModel", "Received null OCR response.")
         }
-    }
-
-    fun processResults() {
-        val distinctText = _ocrTextList.distinct()
-        val nutrition = distinctText.joinToString("\n")
-        val expiry = distinctText.filter { containsDate(it) }.joinToString("\n")
-
-        if (nutrition.isNotBlank() || expiry.isNotBlank()) {
-            val fullText = "$nutrition\n$expiry"
-
-            // 외부 API를 호출하여 OCR 결과를 전송하고 허가 여부 결정
-            val request = OcrRequest(ocr = fullText)
-
-
-            RetrofitClient.get_approval.getApproval(request).enqueue(object :
-                Callback<OcrResponse> {
-                override fun onResponse(call: Call<OcrResponse>, response: Response<OcrResponse>) {
-                    if (response.isSuccessful) {
-                        val approval = response.body()?.approval == true
-                        val allergy = response.body()?.allergy
-                        val desc = response.body()?.desc
-
-                        Log.d("API", "approval: $approval")
-                        Log.d("API", "allergy: $allergy")
-                        Log.d("API", "desc: $desc")
-
-                        if (approval && (allergy != null && desc != null)) {
-                            _identifiedAllergy.value = allergy
-                            _identifiedDesc.value = desc
-                            _nutritionText.value = nutrition
-                            _expiryText.value = expiry
-                            _showDialog.value = true
-                            _isScanning.value = false
-                        }
-
-                    } else {
-                        Log.e("API", "서버 응답 오류: ${response.code()}")
-                    }
-                }
-
-                override fun onFailure(call: Call<OcrResponse>, t: Throwable) {
-                    Log.e("API", "요청 실패: ${t.message}")
-                }
-            })
-        }
-        _ocrTextList.clear()
     }
 
     fun resetScan() {
         _isScanning.value = true
         _showDialog.value = false
+        // 다이얼로그 닫을 때 이전 인식 결과 초기화
+        //_identifiedAllergy.value = emptyList()
+        _identifiedDesc.value = ""
+        //_identifiedExpiration.value = ""
+        _dDayExp.value = null
     }
 
     override fun onCleared() {
@@ -206,25 +121,22 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         tts.shutdown()
     }
 
-//    private var userExp: Int = 5
- //   private var userAllergy: List<String> = emptyList()
-
     init {
         val context = getApplication<Application>()
-
-//        FileManager.createUserExpIfNotExists(context)
-//        FileManager.createUserAllergyIfNotExists(context)
-//
-//        userExp = FileManager.loadUserExp(context)
-//        userAllergy = FileManager.loadAllergyList(context)
+        // FileManager 초기화 관련 코드는 필요에 따라 주석 해제하여 사용
+        // FileManager.createUserExpIfNotExists(context)
+        // FileManager.createUserAllergyIfNotExists(context)
+        // userExp = FileManager.loadUserExp(context)
+        // userAllergy = FileManager.loadAllergyList(context)
     }
 
     fun expDday(): Int? {
-        if (identifiedDesc.value.isBlank()) return null
+        // identifiedExpiration.value에 날짜가 "yyyyMMdd" 형식으로 들어와야 함
+        if (identifiedExpiration.value.isBlank()) return null
 
         return try {
-            val dateFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
-            val endDate = dateFormat.parse(identifiedDesc.value)
+            val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
+            val endDate = dateFormat.parse(identifiedExpiration.value)
             val startDate = java.util.Date()
 
             val dDay = ((endDate.time - startDate.time) / (24 * 60 * 60 * 1000)).toInt()
@@ -237,7 +149,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun expFiltering(ctx : Context): Boolean {
-        if (identifiedExpiration .value.isBlank()) return true
+        if (identifiedExpiration.value.isBlank()) return true
 
         val userExp = FileManager.loadUserData(ctx)?.expi_date
 
@@ -249,7 +161,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         return true
     }
 
-
     fun allergyFiltering(ctx : Context): Boolean {
         if (identifiedAllergy.value.isEmpty()) return true
 
@@ -260,14 +171,5 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         }
 
         return true
-    }
-
-
-    private fun containsDate(text: String): Boolean {
-        val datePatterns = listOf(
-            "\\d{4}[./-]\\d{1,2}[./-]\\d{1,2}",
-            "\\d{2}[./-]\\d{1,2}[./-]\\d{1,2}"
-        )
-        return datePatterns.any { Regex(it).containsMatchIn(text) }
     }
 }
