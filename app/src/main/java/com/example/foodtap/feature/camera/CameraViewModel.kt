@@ -47,6 +47,10 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _dDayExp = MutableStateFlow<Int?>(null)
     val dDayExp: StateFlow<Int?> = _dDayExp
 
+    fun setScanningState(isScanning: Boolean) { // 새로 추가된 함수
+        _isScanning.value = isScanning
+    }
+
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             tts.language = Locale.KOREAN

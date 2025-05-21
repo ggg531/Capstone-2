@@ -25,13 +25,19 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean // API 호출 중복 방지
 
-// API 호출 중복 방지를 위한 AtomicBoolean
+// API 호출 중복 방지를 위한 AtomicBoolean (기존과 동일하게 유지)
 private val isApiCallInProgress = AtomicBoolean(false)
 
 class ClovaOcrAnalyzer(
     private val executor: Executor,
     private val onOcrResult: (String) -> Unit // OCR 결과 처리를 위한 콜백 (필요하다면)
 ) : ImageAnalysis.Analyzer {
+
+    // 마지막으로 API 호출을 시도한 시간을 기록하는 변수
+    private var lastApiCallTime = 0L
+
+    // API 호출 간 최소 간격 (0.5초 = 500밀리초)
+    private val MIN_API_CALL_INTERVAL_MS = 500L
 
     // ImageProxy를 Bitmap으로 변환하는 헬퍼 함수 (YUV_420_888 형식 처리)
     private fun ImageProxy.toBitmap(): Bitmap? {
@@ -70,8 +76,10 @@ class ClovaOcrAnalyzer(
 
 
     override fun analyze(imageProxy: ImageProxy) {
-        // API 호출이 진행 중이면 새 프레임 무시
-        if (isApiCallInProgress.get()) {
+        val currentTime = System.currentTimeMillis()
+
+        // API 호출이 진행 중이거나, 마지막 호출로부터 최소 간격이 지나지 않았다면 새 프레임 무시
+        if (isApiCallInProgress.get() || (currentTime - lastApiCallTime < MIN_API_CALL_INTERVAL_MS)) {
             imageProxy.close() // 프레임 사용 완료 알림
             return
         }
@@ -82,7 +90,13 @@ class ClovaOcrAnalyzer(
         // 프레임 처리가 끝나면 반드시 close() 호출
         imageProxy.close()
 
-        // API 호출이 진행 중임을 표시
+        // 비트맵이 null이거나 유효하지 않으면 처리하지 않음
+        if (bitmap == null) {
+            return
+        }
+
+        // API 호출을 시도하기 직전에 시간 기록 및 플래그 설정
+        lastApiCallTime = currentTime
         isApiCallInProgress.set(true)
 
         // 비트맵을 Base64 문자열로 변환

@@ -134,6 +134,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         Button(
             onClick = {
                 viewModel.stopSpeaking()
+                viewModel.setScanningState(false)
                 navController.navigate("my") {
                     //
                 }
