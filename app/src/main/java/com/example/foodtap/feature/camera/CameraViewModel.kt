@@ -112,7 +112,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         //_identifiedAllergy.value = emptyList()
         _identifiedDesc.value = ""
         //_identifiedExpiration.value = ""
-        _dDayExp.value = null
+        //_dDayExp.value = null
     }
 
     override fun onCleared() {
