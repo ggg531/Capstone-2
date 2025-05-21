@@ -1,7 +1,6 @@
 package com.example.foodtap.feature.init
 
 import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
@@ -16,8 +15,6 @@ import com.example.foodtap.api.SttRequest
 import com.example.foodtap.api.SttResponse
 import com.example.foodtap.api.UserData
 import com.example.foodtap.util.FileManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
