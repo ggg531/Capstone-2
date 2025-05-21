@@ -159,10 +159,10 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         _isScanning.value = true // 스캔 재개
         _showDialog.value = false
         // 다이얼로그 닫을 때 이전 인식 결과 초기화
-        _identifiedAllergy.value = emptyList()
+        //_identifiedAllergy.value = emptyList()
         _identifiedDesc.value = ""
-        _identifiedExpiration.value = ""
-        _dDayExp.value = null
+        //_identifiedExpiration.value = ""
+        //_dDayExp.value = null
         startScanTimer() // 스캔 재개와 함께 타이머 다시 시작
     }
 
