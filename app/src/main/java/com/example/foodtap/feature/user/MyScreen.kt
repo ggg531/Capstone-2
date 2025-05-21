@@ -41,8 +41,6 @@ import com.example.foodtap.ui.theme.Show
 import kotlinx.coroutines.delay
 import com.example.foodtap.api.UserData
 import com.example.foodtap.util.FileManager
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 
 @Composable
 fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
@@ -55,7 +53,15 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
         viewModel.speak("마이 페이지입니다. 버튼을 클릭하면 구매 기준을 변경할 수 있습니다.")
     }
 
-    val userAllergyDisplay = userData?.allergy?.split(",")?.joinToString(", ")?.takeIf { it.isNotBlank() } ?: "미설정"
+    val userAllergyDisplay = userData?.allergy
+        ?.replace("[", "")
+        ?.replace("]", "")
+        ?.replace("'", "")
+        ?.split(",")
+        ?.map { it.trim() }
+        ?.filter { it.isNotBlank() }
+        ?.joinToString(", ")
+        ?: "미설정"
     val userExpDisplay = userData?.expi_date?.takeIf { it.isNotBlank() }?.let { "$it 일" } ?: "미설정"
 
     Column(
@@ -75,7 +81,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "마이 페이지", // 식품 톡톡 님
+                text = "마이 페이지",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -111,7 +117,6 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                     modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
-                        //text = "$userExp 일 이상을 선호합니다.",
                         text = userExpDisplay,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,
@@ -146,7 +151,6 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                     modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
-                        //text = "$userAllergy을(를) 제외합니다.",
                         text = userAllergyDisplay,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,

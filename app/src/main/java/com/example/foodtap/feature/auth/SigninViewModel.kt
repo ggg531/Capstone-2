@@ -91,7 +91,10 @@ class SigninViewModel(application: Application) : AndroidViewModel(application),
                         // API로부터 받은 UserData를 FileManager를 통해 저장
                         FileManager.saveUserData(getApplication(), fetchedUserData)
                         Log.d("SigninViewModel", "Successfully fetched and saved UserData: $fetchedUserData")
-                        _userStatus.value = UserStatus.EXISTING_USER
+
+                        android.os.Handler(getApplication<Application>().mainLooper).postDelayed({
+                            _userStatus.value = UserStatus.EXISTING_USER
+                        }, 1000)
                     } else {
                         Log.e("SigninViewModel", "Fetched UserData is null. Body: ${response.body()}")
                         // 기존 사용자 프로필 파일이 있다면 삭제하거나, 오류 상태로 처리

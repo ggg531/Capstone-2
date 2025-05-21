@@ -198,8 +198,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 }
             },
             text = {
-                Box(modifier = Modifier.height(330.dp)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Box(modifier = Modifier.height(190.dp)) {
+                    Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp)) {
                         Text(
                             text = "소비 기한",
                             fontSize = 28.sp,
@@ -212,7 +212,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Light,
                             color = Color.Black,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            modifier = Modifier.padding(bottom = 20.dp)
                         )
                         Text(
                             text = "알레르기 성분",
@@ -227,8 +227,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             fontWeight = FontWeight.Light,
                             color = Color.Black,
                             lineHeight = 30.sp,
-                            modifier = Modifier.padding(bottom = 12.dp)
                         )
+                        /*
                         Text(
                             text = "식품 상세 정보",
                             fontSize = 28.sp,
@@ -249,6 +249,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                                 lineHeight = 25.sp,
                             )
                         }
+                         */
                     }
                 }
             },
@@ -257,6 +258,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         viewModel.stopSpeaking()
                         viewModel.resetScan()
+                        //viewModel.speak("식품 정보를 촬영하세요.")
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors =  ButtonDefaults.buttonColors(containerColor = Main),
@@ -278,6 +280,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 일 까지 입니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
                             append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
+                            append (if (identifiedDesc.isNotBlank()) "\t$identifiedDesc" else "")
                         }
                         viewModel.speak(listen)
                     },
@@ -288,7 +291,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                         .size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
-                        text = "음성으로 듣기",
+                        text = "상세 정보 듣기",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White
