@@ -118,7 +118,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             else -> "재등록 필요" // ApiStatus.ERROR 또는 STT 결과 없음 등
         }
         val dialogText = when {
-            hasValidResult -> "$displayAllergyText 성분을 등록하시겠습니까? 맞으면 중간에 위치한 파란색 버튼을 아니라면 가장 아래에 위치한 버튼을 클릭하세요."
+            hasValidResult -> "$displayAllergyText 성분을 등록하시겠습니까?"
             //noResult -> "보유 알레르기 성분이 없습니까?"
             else -> "알레르기 성분을 다시 등록하세요."
         }
@@ -136,8 +136,15 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             }
 
             if (apiCallStatus != ApiStatus.LOADING) {
-                viewModel.speak(dialogText)
+                //viewModel.speak(dialogText)
+                val speechText = if (hasValidResult) {
+                    "$displayAllergyText 성분을 등록하시겠습니까? 맞으면 중간에 위치한 파란색 버튼을, 아니라면 가장 아래에 위치한 버튼을 클릭하세요."
+                } else {
+                    "알레르기 성분을 다시 등록하세요."
+                }
+                viewModel.speak(speechText)
             }
+
         }
 
         AlertDialog(
