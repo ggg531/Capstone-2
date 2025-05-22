@@ -191,7 +191,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
             val endDate = dateFormat.parse(_identifiedExpiration.value)
             val startDate = java.util.Date() // 현재 날짜
 
-            val dDay = ((endDate.time - startDate.time) / (24 * 60 * 60 * 1000)).toInt()
+            val dDay = ((endDate.time - startDate.time) / (24 * 60 * 60 * 1000)).toInt() + 1
             dDay
         } catch (e: Exception) {
             Log.e("expDday", "날짜 파싱 실패: ${e.message}")

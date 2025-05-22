@@ -271,7 +271,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 까지 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 까지로, ${dDay}일 남았습니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
                             append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
                             append (if (identifiedDesc.isNotBlank()) "\t$identifiedDesc" else "")

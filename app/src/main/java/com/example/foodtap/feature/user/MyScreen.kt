@@ -50,7 +50,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
     LaunchedEffect(Unit) {
         userData = FileManager.loadUserData(context)
         delay(500)
-        viewModel.speak("마이 페이지입니다. 진한 파란색 버튼을 클릭하면 구매 기준을 변경할 수 있고, 가장 아래 하늘색 버튼을 클릭하면 촬용 페이지로 이동합니다.")
+        viewModel.speak("마이 페이지입니다. 진한 파란색 버튼을 클릭하면 구매 기준을 변경할 수 있고, 가장 아래 버튼을 클릭하면 촬영 페이지로 이동합니다.")
     }
 
     val userAllergyDisplay = userData?.allergy
