@@ -180,6 +180,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 @Suppress("DEPRECATION")
                 vibrator?.vibrate(if (isSafeForVibrationAndColor) 150 else 200)
             }
+
+            if (isSafeForVibrationAndColor) {
+                viewModel.speak("안전한 식품입니다. 상세 정보를 들으시려면 가장 아래에 위치한 버튼을 클릭하세요.")
+            } else {
+                viewModel.speak("구매에 적합하지 않은 식품입니다. 상세 정보를 들으시려면 가장 아래에 위치한 버튼을 클릭하세요.")
+            }
         }
 
         AlertDialog(
@@ -209,7 +215,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         Text(
-                            text = if (identifiedDesc.isBlank() || dDay == null) "없음" else "$identifiedExpiration (D-$dDay)",
+                            text = if (identifiedDesc.isBlank() || dDay == null) {
+                                "없음"
+                            } else {
+                                val dDayStr = if (dDay!! >= 0) "D-$dDay" else "D+${-dDay!!}"
+                                "$identifiedExpiration ($dDayStr)"
+                            },
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Light,
                             color = Color.Black,
@@ -240,6 +251,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 Button(
                     onClick = {
                         viewModel.stopSpeaking()
+                        viewModel.speak("식품 정보를 촬영하세요.")
                         viewModel.resetScan() // ViewModel에서 스캔 재개 및 타이머 초기화
                     },
                     shape = RoundedCornerShape(16.dp),
@@ -269,7 +281,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     shape = RoundedCornerShape(16.dp),
                     colors =  ButtonDefaults.buttonColors(containerColor = Main),
                     modifier = Modifier
-                        .padding(top = 4.dp)
+                        .padding(top = 6.dp)
                         .size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(

@@ -118,7 +118,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             else -> "재등록 필요" // ApiStatus.ERROR 또는 STT 결과 없음 등
         }
         val dialogText = when {
-            hasValidResult -> "$displayAllergyText 성분을 등록하시겠습니까?"
+            hasValidResult -> "$displayAllergyText 성분을 등록하시겠습니까? 맞으면 중간에 위치한 파란색 버튼을 아니라면 가장 아래에 위치한 버튼을 클릭하세요."
             //noResult -> "보유 알레르기 성분이 없습니까?"
             else -> "알레르기 성분을 다시 등록하세요."
         }
@@ -207,7 +207,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Main),
                         modifier = Modifier
-                            .padding(top = 4.dp)
+                            .padding(top = 6.dp)
                             .size(width = 360.dp, height = 80.dp)
                     ) {
                         Text(
