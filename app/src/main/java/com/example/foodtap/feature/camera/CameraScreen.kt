@@ -173,7 +173,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 val vibrationEffect = if (isSafeForVibrationAndColor) {
                     VibrationEffect.createOneShot(150, 200)
                 } else {
-                    VibrationEffect.createWaveform(longArrayOf(0, 200, 50, 200), intArrayOf(0, 255, 0, 255), -1)
+                    VibrationEffect.createWaveform(longArrayOf(0, 250, 50, 250), intArrayOf(0, 255, 0, 255), -1)
                 }
                 vibrator?.vibrate(vibrationEffect)
             } else {
@@ -199,7 +199,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 }
             },
             text = {
-                Box(modifier = Modifier.height(190.dp)) {
+                Box(modifier = Modifier.height(200.dp)) {
                     Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp)) {
                         Text(
                             text = "소비 기한",
@@ -213,7 +213,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Light,
                             color = Color.Black,
-                            modifier = Modifier.padding(bottom = 20.dp)
+                            modifier = Modifier
+                                .padding(bottom = 20.dp)
                         )
                         Text(
                             text = "알레르기 성분",
@@ -228,6 +229,9 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             fontWeight = FontWeight.Light,
                             color = Color.Black,
                             lineHeight = 30.sp,
+                            modifier = Modifier
+                                .height(80.dp)
+                                .verticalScroll(scrollState),
                         )
                     }
                 }
@@ -255,7 +259,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                     onClick = {
                         val listen = buildString {
                             append("소비기한은 ")
-                            append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 일 까지 입니다." else "인식되지 않았습니다.")
+                            append(if (identifiedExpiration.isNotBlank()) "$identifiedExpiration 까지 입니다." else "인식되지 않았습니다.")
                             append("알레르기 성분은 ")
                             append(if (identifiedAllergy.isNotEmpty()) "$identifiedAllergy 입니다." else "인식되지 않았습니다.")
                             append (if (identifiedDesc.isNotBlank()) "\t$identifiedDesc" else "")

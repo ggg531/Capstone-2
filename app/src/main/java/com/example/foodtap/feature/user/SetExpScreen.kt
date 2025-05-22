@@ -51,7 +51,10 @@ fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewMode
                 .fillMaxWidth()
                 .fillMaxHeight(0.5f)
                 .background(Safe)
-                .clickable { count++ }
+                .clickable {
+                    count++
+                    viewModel.speak("${count}일")
+                }
                 .semantics { contentDescription = "소비 기한 증가" }
                 .align(Alignment.TopCenter),
             contentAlignment = Alignment.Center
@@ -69,7 +72,11 @@ fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewMode
                 .fillMaxWidth()
                 .fillMaxHeight(0.5f)
                 .background(Unsafe)
-                .clickable { if (count > 0) count-- }
+                .clickable {
+                    if (count > 0)
+                        count--
+                        viewModel.speak("${count}일")
+                }
                 .semantics { contentDescription = "기한 감소" }
                 .align(Alignment.BottomCenter),
             contentAlignment = Alignment.Center
@@ -89,6 +96,8 @@ fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewMode
                 if (updated != null) {
                     FileManager.saveUserData(context, updated)
                 }
+                viewModel.speak("변경되었습니다.")
+
                 navController.navigate("my") {
                     popUpTo("setexp") { inclusive = true }
                 }
@@ -100,7 +109,7 @@ fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewMode
                 .align(Alignment.Center)
         ) {
             Text(
-                text = "${count}일",
+                text = "${count} 일",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White,
