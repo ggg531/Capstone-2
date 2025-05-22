@@ -49,7 +49,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val executor = remember { Executors.newSingleThreadExecutor() } // 이미지 분석을 위한 백그라운드 Executor
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
-    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle() // ViewModel에서 showDialog 상태를 가져옴
     val scrollState = rememberScrollState()
 
     val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
@@ -60,26 +60,32 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val dDay by viewModel.dDayExp.collectAsStateWithLifecycle()
 
     // OcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
-    // OcrAnalyzer는 ML Kit OCR을 수행하고, 그 결과를 외부 API로 전송한 후 최종 응답을 콜백으로 전달합니다.
     val ocrAnalyzer = remember {
-        OcrAnalyzer(executor = executor) { ocrResponse -> // TextRecognizer 인스턴스를 생성자에서 제거
+        OcrAnalyzer(executor = executor) { ocrResponse ->
             Log.d("CameraScreen", "Received processed OCR response from Analyzer: $ocrResponse")
-
-            if (isScanning) { // isScanning이 true일 때만 OCR 결과 처리
-                viewModel.handleProcessedOcrResponse(ocrResponse) // ViewModel의 새로운 함수 호출
-            }
+            // OCR 결과가 오면 ViewModel로 전달
+            viewModel.handleProcessedOcrResponse(ocrResponse)
         }
     }
 
     // ImageAnalysis 유스케이스 설정 및 분석기 연결
-    // OcrAnalyzer의 create() 메서드를 사용하여 ImageAnalysis 인스턴스를 생성
     val imageAnalysis = remember {
         ocrAnalyzer.create()
     }
 
+    // CameraScreen 진입 시 타이머 시작 및 음성 안내
     LaunchedEffect(Unit) {
+        viewModel.startScanTimer() // 타이머 시작
         delay(500)
         viewModel.speak("식품 정보를 촬영하세요.")
+    }
+
+    // CameraScreen이 컴포지션에서 사라질 때 타이머 정지 (LifecycleOwner 대신 DisposableEffect 사용)
+    DisposableEffect(lifecycleOwner) {
+        onDispose {
+            viewModel.stopScanTimer() // 화면에서 벗어날 때 타이머 정지
+            viewModel.stopSpeaking() // 혹시 모를 음성도 중지
+        }
     }
 
     val previewView = remember {
@@ -93,7 +99,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     // 카메라 미리보기 및 이미지 분석 유스케이스 바인딩
-    // isScanning 상태에 따라 바인딩/언바인딩 제어
+    // isScanning 상태에 따라 바인딩/언바인딩 제어 (ViewModel의 isScanning 상태 사용)
     LaunchedEffect(previewView, imageAnalysis, isScanning) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
         val cameraProvider = cameraProviderFuture.get()
@@ -104,7 +110,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
 
         try {
             cameraProvider.unbindAll() // 이전에 바인딩된 모든 유스케이스를 해제
-            if (isScanning) { // isScanning이 true일 때만 바인딩
+            if (isScanning) { // ViewModel의 isScanning이 true일 때만 바인딩
                 cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
             }
         } catch (e: Exception) {
@@ -156,14 +162,15 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         }
     }
 
+    // ViewModel의 showDialog 상태에 따라 팝업 표시 여부 결정
     if (showDialog) {
-        val isSafe = viewModel.expFiltering(ctx) && viewModel.allergyFiltering(ctx)
+        val isSafeForVibrationAndColor = viewModel.expFiltering(ctx) && viewModel.allergyFiltering(ctx)
 
         LaunchedEffect(showDialog) {
             val vibrator = ctx.getSystemService(Vibrator::class.java)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val vibrationEffect = if (isSafe) {
+                val vibrationEffect = if (isSafeForVibrationAndColor) {
                     VibrationEffect.createOneShot(150, 200)
                 } else {
                     VibrationEffect.createWaveform(longArrayOf(0, 200, 50, 200), intArrayOf(0, 255, 0, 255), -1)
@@ -171,12 +178,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 vibrator?.vibrate(vibrationEffect)
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(if (isSafe) 150 else 200)
+                vibrator?.vibrate(if (isSafeForVibrationAndColor) 150 else 200)
             }
         }
 
         AlertDialog(
-            containerColor = if (isSafe) Safe else Unsafe,
+            containerColor = if (isSafeForVibrationAndColor) Safe else Unsafe,
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -222,28 +229,6 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             color = Color.Black,
                             lineHeight = 30.sp,
                         )
-                        /*
-                        Text(
-                            text = "식품 상세 정보",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.Black,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .height(100.dp)
-                                .verticalScroll(scrollState)
-                        ) {
-                            Text(
-                                text = identifiedDesc.ifBlank { "없음" },
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Light,
-                                color = Color.Black,
-                                lineHeight = 25.sp,
-                            )
-                        }
-                         */
                     }
                 }
             },
@@ -251,8 +236,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 Button(
                     onClick = {
                         viewModel.stopSpeaking()
-                        viewModel.resetScan()
-                        //viewModel.speak("식품 정보를 촬영하세요.")
+                        viewModel.resetScan() // ViewModel에서 스캔 재개 및 타이머 초기화
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors =  ButtonDefaults.buttonColors(containerColor = Main),
