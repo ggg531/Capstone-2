@@ -63,3 +63,24 @@ interface PutAllergyService {
     ): Call<String>
 }
 
+interface PutExpiDateService {
+    @PUT("/expi/{id}")
+    fun putExpirDate(
+        @Path("id") id: String,
+        @Body request: ExpiData
+    ): Call<String>
+}
+
+interface GetConfirmService {
+    @POST("/confirm")
+    fun getConfirm(
+        @Body request: SttRequest
+    ): Call<ConfirmData>
+}
+
+interface Stt2ExpiDataService {
+    @POST("/expi")
+    fun stt2ExpiDate(
+        @Body request: SttRequest
+    ): Call<ExpiData>
+}

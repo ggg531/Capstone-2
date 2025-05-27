@@ -18,3 +18,11 @@ data class SttResponse(
 data class SttRequest(
     val stt: String
 )
+
+data class ExpiData(
+    val expi: String
+)
+
+data class ConfirmData(
+    val confirm: Boolean
+)

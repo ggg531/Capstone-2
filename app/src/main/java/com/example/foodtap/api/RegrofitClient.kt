@@ -71,4 +71,31 @@ object RetrofitClient {
             .build()
             .create(PutAllergyService::class.java)
     }
+
+    val put_expi: PutExpiDateService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().build())
+            .build()
+            .create(PutExpiDateService::class.java)
+    }
+
+    val get_confirm: GetConfirmService by lazy {
+        Retrofit.Builder()
+            .baseUrl(AI_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().build())
+            .build()
+            .create(GetConfirmService::class.java)
+    }
+
+    val stt2ExpiDate: Stt2ExpiDataService by lazy {
+        Retrofit.Builder()
+            .baseUrl(AI_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().build())
+            .build()
+            .create(Stt2ExpiDataService::class.java)
+    }
 }
