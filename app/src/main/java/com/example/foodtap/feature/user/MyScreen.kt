@@ -47,12 +47,6 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
     val context = LocalContext.current
     var userData by remember { mutableStateOf<UserData?>(null) }
 
-    LaunchedEffect(Unit) {
-        userData = FileManager.loadUserData(context)
-        delay(500)
-        viewModel.speak("마이 페이지입니다. 진한 파란색 버튼을 클릭하면 구매 기준을 변경할 수 있고, 가장 아래 버튼을 클릭하면 촬영 페이지로 이동합니다.")
-    }
-
     val userAllergyDisplay = userData?.allergy
         ?.replace("[", "")
         ?.replace("]", "")
@@ -62,7 +56,15 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
         ?.filter { it.isNotBlank() }
         ?.joinToString(", ")
         ?: "미설정"
+
     val userExpDisplay = userData?.expi_date?.takeIf { it.isNotBlank() }?.let { "$it 일" } ?: "미설정"
+
+    LaunchedEffect(Unit) {
+        userData = FileManager.loadUserData(context)
+        delay(500)
+        viewModel.speak("마이 페이지입니다.")
+        //viewModel.speak("마이 페이지입니다. 진한 파란색 버튼을 클릭하면 구매 기준을 변경할 수 있고, 가장 아래 버튼을 클릭하면 촬영 페이지로 이동합니다.")
+    }
 
     Column(
         modifier = Modifier
@@ -188,54 +190,5 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 modifier = Modifier.semantics { contentDescription = "촬영 페이지로 이동" }
             )
         }
-
-        /*
-        Column(
-            modifier = Modifier.padding(bottom = 30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-            Button(
-                onClick = {
-                    viewModel.stopSpeaking()
-                    navController.navigate("setcri") {
-                        //
-                    }
-                },
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Main),
-                modifier = Modifier.size(width = 360.dp, height = 72.dp)
-            ) {
-                Text(
-                    text = "구매 기준 변경",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                    modifier = Modifier.semantics { contentDescription = "구매 기준 변경 버튼" }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            Button(
-                onClick = {
-                    viewModel.stopSpeaking()
-                    navController.navigate("setui") {
-                        //
-                    }
-                },
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Main),
-                modifier = Modifier.size(width = 360.dp, height = 72.dp)
-            ) {
-                Text(
-                    text = "화면 설정 변경",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                    modifier = Modifier.semantics { contentDescription = "화면 설정 변경 버튼" }
-                )
-            }
-        }
-        */
     }
 }

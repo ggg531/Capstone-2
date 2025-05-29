@@ -32,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.foodtap.ui.theme.Main
@@ -51,19 +51,18 @@ import kotlinx.coroutines.flow.collectLatest
 fun InitScreen(navController: NavController, viewModel: InitViewModel = viewModel()) {
     val context = LocalContext.current
 
-    val isListening by viewModel.isListening.collectAsState()
-    val showDialog by viewModel.showDialog.collectAsState()
-    val displayAllergyText by viewModel.displayAllergyText.collectAsState()
-    val apiCallStatus by viewModel.apiCallStatus.collectAsState()
-    val saveAllergyStatus by viewModel.saveAllergyStatus.collectAsState() // 알레르기 저장 API 상태
+    val isListening by viewModel.isListening.collectAsStateWithLifecycle()
+    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+    val displayAllergyText by viewModel.displayAllergyText.collectAsStateWithLifecycle()
+    val apiCallStatus by viewModel.apiCallStatus.collectAsStateWithLifecycle()
+    val saveAllergyStatus by viewModel.saveAllergyStatus.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable(enabled = !isListening && apiCallStatus != ApiStatus.LOADING) { // 로딩 중 아닐 때만 클릭 가능
-                if (!isListening) {
-                    viewModel.startListening()
-                }
+            .clickable(enabled = !isListening && apiCallStatus != ApiStatus.LOADING) {
+                // 로딩 중이 아닐 때만 탭하여 음성 등록
+                viewModel.startListening()
             }
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -92,19 +91,18 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
         }
     }
 
-    // 알레르기 저장 API 성공 시 "my" 화면으로 이동
     LaunchedEffect(saveAllergyStatus) {
-        // collectLatest를 사용하여 최신 상태만 처리하고, 이전 네비게이션 시도를 취소 (중복 방지)
-        viewModel.saveAllergyStatus.collectLatest { status ->
+        viewModel.saveAllergyStatus.collectLatest { status -> // 최신 상태만 처리 (중복 이동 방지)
             if (status == ApiStatus.SUCCESS) {
                 navController.navigate("my") {
-                    popUpTo("init") { inclusive = true } // InitScreen을 백스택에서 제거
-                    launchSingleTop = true // "my" 화면이 이미 스택에 있다면 새로 만들지 않음
+                    popUpTo("init") { inclusive = true } // 백스택에서 "init" 제거
+                    launchSingleTop = true // "my" 중복 방지 (재사용)
                 }
-                // 성공 후 상태를 IDLE로 되돌려 중복 네비게이션 방지
-                // viewModel.resetSaveStatus() // ViewModel에 이런 함수를 만들어서 호출 가능
+                /* 성공 후 상태를 IDLE로 되돌려 중복 네비게이션 방지
+                viewModel.resetSaveStatus() // ViewModel에 이런 함수를 만들어서 호출 가능
+                */
             }
-            // 에러 처리는 하지 않도록 요청받았으므로, ApiStatus.ERROR에 대한 별도 UI 반응 없음
+            // ApiStatus.ERROR에 대한 별도 UI 반응 없음 (에러 처리 X)
         }
     }
 
@@ -112,7 +110,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
         val hasValidResult = apiCallStatus == ApiStatus.SUCCESS && displayAllergyText.isNotBlank() && displayAllergyText != "인식된 알레르기 성분이 없습니다."
         //val noResult = apiCallStatus == ApiStatus.SUCCESS && (displayAllergyText.isBlank() || displayAllergyText == "인식된 알레르기 성분이 없습니다.")
         val dialogTitle = when {
-            apiCallStatus == ApiStatus.LOADING -> "처리 중" // 이 경우는 거의 없음 (showDialog는 보통 로딩 후에 true가 됨)
+            apiCallStatus == ApiStatus.LOADING -> "처리 중"
             hasValidResult -> "보유 알레르기 성분"
             //noResult -> "결과 없음"
             else -> "재등록 필요" // ApiStatus.ERROR 또는 STT 결과 없음 등
@@ -124,11 +122,10 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
         }
 
         LaunchedEffect(apiCallStatus, displayAllergyText) {
-
             val vibrator = context.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator?.vibrate(
-                    VibrationEffect.createOneShot(150, 200)
+                    VibrationEffect.createOneShot(150, 200) // 음성 인식 완료 기본 햅틱 (150ms, 세기 200)
                 )
             } else {
                 @Suppress("DEPRECATION")
@@ -136,15 +133,8 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
             }
 
             if (apiCallStatus != ApiStatus.LOADING) {
-                //viewModel.speak(dialogText)
-                val speechText = if (hasValidResult) {
-                    "$displayAllergyText 성분을 등록하시겠습니까? 맞으면 중간에 위치한 파란색 버튼을, 아니라면 가장 아래에 위치한 버튼을 클릭하세요."
-                } else {
-                    "알레르기 성분을 다시 등록하세요."
-                }
-                viewModel.speak(speechText)
+                viewModel.speakConfirmListening(dialogText)
             }
-
         }
 
         AlertDialog(

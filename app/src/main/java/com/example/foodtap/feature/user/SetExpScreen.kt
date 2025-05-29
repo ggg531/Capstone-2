@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.foodtap.feature.init.ApiStatus
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Safe
 import com.example.foodtap.ui.theme.Unsafe
@@ -91,15 +92,15 @@ fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewMode
 
         Button(
             onClick = {
-                val existing = FileManager.loadUserData(context)
-                val updated = existing?.copy(expi_date = count.toString())
-                if (updated != null) {
-                    FileManager.saveUserData(context, updated)
-                }
-                viewModel.speak("변경되었습니다.")
-
-                navController.navigate("my") {
-                    popUpTo("setexp") { inclusive = true }
+                viewModel.confirmResult(count) { success ->
+                    if (success) {
+                        viewModel.speak("변경되었습니다.") //
+                        navController.navigate("my") {
+                            popUpTo("setexp") { inclusive = true }
+                        }
+                    } else {
+                        viewModel.speak("소비기한 정보를 다시 등록하세요.")
+                    }
                 }
             },
             shape = RoundedCornerShape(16.dp),

@@ -44,52 +44,30 @@ import java.util.concurrent.Executors
 
 @Composable
 fun CameraScreen(navController: NavController, viewModel: CameraViewModel = viewModel()) {
-    val ctx = LocalContext.current
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() } // 이미지 분석을 위한 백그라운드 Executor
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
-    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle() // ViewModel에서 showDialog 상태를 가져옴
+    val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    val nutritionText by viewModel.nutritionText.collectAsStateWithLifecycle()
-    val expiryText by viewModel.expiryText.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
     val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
     val dDay by viewModel.dDayExp.collectAsStateWithLifecycle()
 
-    // OcrAnalyzer 인스턴스 생성 및 콜백 람다 정의
     val ocrAnalyzer = remember {
         OcrAnalyzer(executor = executor) { ocrResponse ->
             Log.d("CameraScreen", "Received processed OCR response from Analyzer: $ocrResponse")
-            // OCR 결과가 오면 ViewModel로 전달
-            viewModel.handleProcessedOcrResponse(ocrResponse)
+            viewModel.handleProcessedOcrResponse(ocrResponse) // OCR 결과를 ViewModel로 전달하여 처리
         }
     }
-
-    // ImageAnalysis 유스케이스 설정 및 분석기 연결
     val imageAnalysis = remember {
-        ocrAnalyzer.create()
+        ocrAnalyzer.create() // ocrAnalyzer 연결
     }
-
-    // CameraScreen 진입 시 타이머 시작 및 음성 안내
-    LaunchedEffect(Unit) {
-        viewModel.startScanTimer() // 타이머 시작
-        delay(500)
-        viewModel.speak("식품 정보를 촬영하세요.")
-    }
-
-    // CameraScreen이 컴포지션에서 사라질 때 타이머 정지 (LifecycleOwner 대신 DisposableEffect 사용)
-    DisposableEffect(lifecycleOwner) {
-        onDispose {
-            viewModel.stopScanTimer() // 화면에서 벗어날 때 타이머 정지
-            viewModel.stopSpeaking() // 혹시 모를 음성도 중지
-        }
-    }
-
     val previewView = remember {
-        PreviewView(ctx).apply {
+        PreviewView(context).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -98,10 +76,23 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.startScanTimer() // 타이머 시작 (스캔 시작)
+        delay(500) //
+        viewModel.speak("식품 정보를 촬영하세요.")
+    }
+
+    // CameraScreen이 컴포지션에서 사라질 때
+    DisposableEffect(lifecycleOwner) {
+        onDispose {
+            viewModel.stopScanTimer() // 타이머 중지
+            viewModel.stopSpeaking() // tts 중지
+        }
+    }
+
     // 카메라 미리보기 및 이미지 분석 유스케이스 바인딩
-    // isScanning 상태에 따라 바인딩/언바인딩 제어 (ViewModel의 isScanning 상태 사용)
     LaunchedEffect(previewView, imageAnalysis, isScanning) {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         val cameraProvider = cameraProviderFuture.get()
         val preview = Preview.Builder().build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
@@ -109,8 +100,8 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
         try {
-            cameraProvider.unbindAll() // 이전에 바인딩된 모든 유스케이스를 해제
-            if (isScanning) { // ViewModel의 isScanning이 true일 때만 바인딩
+            cameraProvider.unbindAll() // 이전에 바인딩된 모든 유스케이스 해제 (초기화)
+            if (isScanning) { // 바인딩
                 cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
             }
         } catch (e: Exception) {
@@ -133,7 +124,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         Button(
             onClick = {
                 viewModel.stopSpeaking()
-                viewModel.setScanningState(false) // 다른 화면으로 이동 시 스캔 중지
+                viewModel.setScanningState(false) //
                 navController.navigate("my") {
                     //
                 }
@@ -162,17 +153,15 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         }
     }
 
-    // ViewModel의 showDialog 상태에 따라 팝업 표시 여부 결정
     if (showDialog) {
-        val isSafeForVibrationAndColor = viewModel.expFiltering(ctx) && viewModel.allergyFiltering(ctx)
+        val isSafeForVibrationAndColor = viewModel.expFiltering(context) && viewModel.allergyFiltering(context)
 
         LaunchedEffect(showDialog) {
-            val vibrator = ctx.getSystemService(Vibrator::class.java)
-
+            val vibrator = context.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val vibrationEffect = if (isSafeForVibrationAndColor) {
+                val vibrationEffect = if (isSafeForVibrationAndColor) { // 안전한 경우: 150ms, 세기 200
                     VibrationEffect.createOneShot(150, 200)
-                } else {
+                } else { // 위험한 경우: 250ms, 세기 255 (햅틱 2회)
                     VibrationEffect.createWaveform(longArrayOf(0, 250, 50, 250), intArrayOf(0, 255, 0, 255), -1)
                 }
                 vibrator?.vibrate(vibrationEffect)

@@ -7,9 +7,11 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.foodtap.api.ConfirmData
 import com.example.foodtap.api.RetrofitClient
 import com.example.foodtap.api.SttRequest
 import com.example.foodtap.api.SttResponse
@@ -27,7 +29,16 @@ import java.util.Locale
 
 // API 호출 상태를 나타내는 Enum
 enum class ApiStatus {
-    IDLE, LOADING, SUCCESS, ERROR
+    IDLE, // 초기 상태
+    LOADING,
+    SUCCESS,
+    ERROR
+}
+
+enum class ConfirmApiStatus {
+    IDLE, // 초기 상태
+    SUCCESS,
+    ERROR
 }
 
 class InitViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
@@ -45,29 +56,46 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
     private val _displayAllergyText = MutableStateFlow("")
     val displayAllergyText: StateFlow<String> = _displayAllergyText.asStateFlow()
 
-    private val _registeredAllergyText = MutableStateFlow("") // 이전에 등록 확정된 텍스트
-    val registeredAllergyText: StateFlow<String> = _registeredAllergyText.asStateFlow()
+    private val _isConfirmListening = MutableStateFlow(false)
+    val isConfirmListening: StateFlow<Boolean> = _isConfirmListening.asStateFlow()
 
-    private val _showDialog = MutableStateFlow(false)
-    val showDialog: StateFlow<Boolean> = _showDialog.asStateFlow()
+    private val _rawSttConfirmText = MutableStateFlow("")
+    val rawSttConfirmText: StateFlow<String> = _rawSttConfirmText.asStateFlow()
 
     private val _apiCallStatus = MutableStateFlow(ApiStatus.IDLE)
     val apiCallStatus: StateFlow<ApiStatus> = _apiCallStatus.asStateFlow()
 
-    // 알레르기 저장 API 호출 상태 추가
+    private val _confirmApiStatus = MutableStateFlow(ConfirmApiStatus.IDLE)
+    val confirmApiStatus: StateFlow<ConfirmApiStatus> = _confirmApiStatus.asStateFlow()
+
+    // 알레르기 저장 API 호출 상태
     private val _saveAllergyStatus = MutableStateFlow(ApiStatus.IDLE)
     val saveAllergyStatus: StateFlow<ApiStatus> = _saveAllergyStatus.asStateFlow()
 
-    private var tts: TextToSpeech = TextToSpeech(application, this)
+    private val _showDialog = MutableStateFlow(false)
+    val showDialog: StateFlow<Boolean> = _showDialog.asStateFlow()
+
+    //private var tts: TextToSpeech = TextToSpeech(application, this)
+    private val tts: TextToSpeech = TextToSpeech(application) { status ->
+        isTtsInitialized = (status == TextToSpeech.SUCCESS)
+    }
     private var isTtsInitialized = false
 
     private val speechRecognizer: SpeechRecognizer =
         SpeechRecognizer.createSpeechRecognizer(application.applicationContext)
-
     private val recognizerIntent: Intent =
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR") // 한국어 설정
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, application.packageName)
+        }
+
+    private var confirmSpeechRecognizer: SpeechRecognizer =
+        SpeechRecognizer.createSpeechRecognizer(application.applicationContext)
+    private val confirmRecognizerIntent: Intent =
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR")
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, application.packageName)
         }
 
@@ -94,16 +122,18 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             override fun onResults(results: Bundle?) {
                 _isListening.value = false
                 Log.d("STT", "onResults called")
+
                 val resultText = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
                 _rawSttText.value = resultText
                 Log.d("STT", resultText)
+
                 if (resultText.isNotBlank()) {
-                    callStt2AllergyApi(resultText)
-                } else { // STT 결과가 비어있을 경우 처리
-                    _displayAllergyText.value = "" // 또는 "음성 인식 결과가 없습니다."
+                    callStt2AllergyApi(resultText) // 제공하는 알레르기 성분 키워드로 변경
+                } else { //
+                    _displayAllergyText.value = "" // "음성 인식 결과가 없습니다."
                     _processedAllergyList.value = emptyList()
-                    _apiCallStatus.value = ApiStatus.ERROR // 또는 다른 적절한 상태
-                    _showDialog.value = true // 다이얼로그 표시
+                    _apiCallStatus.value = ApiStatus.ERROR //
+                    _showDialog.value = true
                 }
             }
 
@@ -129,6 +159,43 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
+
+        confirmSpeechRecognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onResults(results: Bundle?) {
+                _isConfirmListening.value = false
+                Log.d("STT_CONFIRM", "onResults called")
+
+                val confirmresultText = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
+                _rawSttConfirmText.value = confirmresultText
+                Log.d("STT_CONFIRM", confirmresultText)
+
+                if (confirmresultText.isNotBlank()) {
+                    sendSttConfirmRequest(confirmresultText) // 등록 여부 반환
+                } else {
+                    //_apiCallStatus.value = ApiStatus.ERROR
+                    //_confirmApiStatus.value = confirmApiStatus.ERROR
+
+                }
+            }
+
+            override fun onError(error: Int) {
+                _isConfirmListening.value = false
+                Log.e("STT_CONFIRM_ERROR", "Error code: $error")
+                //_apiCallStatus.value = ApiStatus.ERROR
+                //_confirmApiStatus.value = confirmApiStatus.ERROR
+            }
+
+            override fun onEndOfSpeech() {
+                _isConfirmListening.value = false
+            }
+
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
     }
 
     private fun callStt2AllergyApi(sttText: String) {
@@ -141,15 +208,16 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                 if (response.isSuccessful) {
                     val sttResponse = response.body()
                     Log.d("API_CALL", "$sttResponse")
+
                     if (sttResponse != null && sttResponse.allergy.isNotEmpty()) {
-                        _processedAllergyList.value = sttResponse.allergy //
+                        _processedAllergyList.value = sttResponse.allergy // 알레르기 성분 키워드 저장
                         _displayAllergyText.value = sttResponse.allergy.joinToString(", ")
                         _apiCallStatus.value = ApiStatus.SUCCESS
                         Log.d("API_SUCCESS", "Processed allergies: ${sttResponse.allergy}")
-                    } else {
+                    } else { // API는 성공 / 결과가 빈 경우
                         _displayAllergyText.value = "인식된 알레르기 성분이 없습니다."
                         _processedAllergyList.value = emptyList()
-                        _apiCallStatus.value = ApiStatus.SUCCESS // API는 성공했으나 결과가 비었을 수 있음
+                        _apiCallStatus.value = ApiStatus.SUCCESS
                         Log.d("API_EMPTY", "No allergies found or empty response body.")
                     }
                 } else {
@@ -158,7 +226,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                     _apiCallStatus.value = ApiStatus.ERROR
                     Log.e("API_ERROR", "Server error: ${response.code()} - ${response.message()}")
                 }
-                _showDialog.value = true // API 호출 완료 후 다이얼로그 표시
+                _showDialog.value = true
             }
 
             override fun onFailure(call: Call<SttResponse>, t: Throwable) {
@@ -166,7 +234,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                 _processedAllergyList.value = emptyList()
                 _apiCallStatus.value = ApiStatus.ERROR
                 Log.e("API_FAILURE", "Network failure: ${t.message}", t)
-                _showDialog.value = true // API 호출 완료 후 다이얼로그 표시
+                _showDialog.value = true
             }
         })
     }
@@ -175,8 +243,8 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         if (SpeechRecognizer.isRecognitionAvailable(getApplication())) {
             _isListening.value = true
             _rawSttText.value = ""
-            _displayAllergyText.value = "" // 초기화
-            _processedAllergyList.value = emptyList() // 초기화
+            _displayAllergyText.value = ""
+            _processedAllergyList.value = emptyList()
             _apiCallStatus.value = ApiStatus.IDLE // 상태 초기화
             speechRecognizer.startListening(recognizerIntent)
             viewModelScope.launch {
@@ -188,28 +256,14 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    fun stopListening() { // 사용자가 수동으로 중지할 때
-        speechRecognizer.stopListening() // STT 중지
-        // onResults나 onError가 호출될 것이므로 거기서 _isListening.value = false 처리됨
-        // _showDialog.value = true // API 호출 결과에 따라 다이얼로그가 표시되도록 변경
-        // _isListening.value = false // onResults/onError에서 관리
-    }
-
-    fun tapShowDialog(value: Boolean) {
-        _showDialog.value = value
-    }
-
     fun confirmResult() {
         if (_processedAllergyList.value.isNotEmpty()) {
             _saveAllergyStatus.value = ApiStatus.LOADING
-            val userId = FileManager.getOrCreateId(getApplication()) // 사용자 ID 가져오기
+            val userId = FileManager.getOrCreateId(getApplication()) // 사용자 ID
             val allergyListToSave = _processedAllergyList.value
-
-            // API 요청 본문은 SttResponse 형태를 사용 (내부에 List<String> allergy 필드 있음)
             val request = SttResponse(allergy = allergyListToSave)
 
             Log.d("API_CALL_PUT_ALLERGY", "Requesting putAllergy for user: $userId with allergies: $allergyListToSave")
-
             RetrofitClient.put_allergy.putAllergy(userId, request).enqueue(object : Callback<String> {
                 override fun onResponse(call: Call<String>, response: Response<String>) {
                     if (response.isSuccessful) {
@@ -218,34 +272,29 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                         val updatedUserData = UserData(
                             id = userId,
                             allergy = allergyListToSave.joinToString(","), // 쉼표로 구분된 문자열로 저장
-                            expi_date = currentLocalUserData?.expi_date ?: "5" // 기존 소비기한 유지 또는 기본값
+                            expi_date = currentLocalUserData?.expi_date ?: "5" // 기존 소비기한 유지
                         )
                         FileManager.saveUserData(getApplication(), updatedUserData)
                         Log.d("InitViewModel", "Local UserData updated with new allergies.")
-
                         _saveAllergyStatus.value = ApiStatus.SUCCESS
                     } else {
-                        // 에러 처리는 하지 말라는 요청에 따라 별도 처리 없음 (로그만 남김)
                         Log.e("API_PUT_ALLERGY_ERROR", "Failed to save allergies. Code: ${response.code()}, Message: ${response.message()}")
-                        _saveAllergyStatus.value = ApiStatus.ERROR // 실패 상태로 설정 (UI에서 에러 처리를 안해도 상태는 변경)
+                        _saveAllergyStatus.value = ApiStatus.ERROR
+                        // ApiStatus.ERROR에 대한 별도 UI 반응 없음 (에러 처리 X)
                     }
-                    // 성공/실패 여부와 관계없이 다이얼로그는 닫도록 InitScreen에서 처리
                 }
 
                 override fun onFailure(call: Call<String>, t: Throwable) {
-                    // 에러 처리는 하지 말라는 요청에 따라 별도 처리 없음 (로그만 남김)
                     Log.e("API_PUT_ALLERGY_FAILURE", "Network failure while saving allergies: ${t.message}", t)
-                    _saveAllergyStatus.value = ApiStatus.ERROR // 실패 상태로 설정
+                    _saveAllergyStatus.value = ApiStatus.ERROR
+                    // ApiStatus.ERROR에 대한 별도 UI 반응 없음 (에러 처리 X)
                 }
             })
-        } else {
+        } else { // 저장할 알레르기가 없는 경우, 바로 성공으로 간주
             Log.w("API_PUT_ALLERGY_SKIP", "No allergies to save.")
-            // 저장할 알레르기가 없는 경우, 바로 성공으로 간주하고 화면 전환을 유도할 수 있도록 SUCCESS 상태로 변경
-            // 또는 특정 메시지를 표시하고 사용자가 다이얼로그를 닫도록 유도할 수도 있음.
-            // 여기서는 "my"로 이동하는 로직을 위해 SUCCESS로 설정
-            _saveAllergyStatus.value = ApiStatus.SUCCESS
+            _saveAllergyStatus.value = ApiStatus.SUCCESS // SUCCESS => "my"로 이동 O
         }
-        _showDialog.value = false // API 호출 시도 후 다이얼로그 닫기
+        _showDialog.value = false
     }
 
     fun resetResult() {
@@ -255,9 +304,70 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         _apiCallStatus.value = ApiStatus.IDLE
         _showDialog.value = false
         viewModelScope.launch {
-            delay(500)
+            delay(500) //
             speak("화면을 탭하여 알레르기 성분을 등록하세요", "starttap")
         }
+    }
+
+//
+    fun startConfirmListening() {
+        if (SpeechRecognizer.isRecognitionAvailable(getApplication())) {
+            _isConfirmListening.value = true
+            _rawSttConfirmText.value = ""
+            //_confirmApiStatus.value = confirmApiStatus.IDLE // 상태 초기화
+            confirmSpeechRecognizer.startListening(confirmRecognizerIntent)
+            viewModelScope.launch {
+                //speak("등록?", "startListening")
+            }
+        } else {
+            Log.e("STT_UNAVAILABLE", "Speech recognition not available")
+        }
+    }
+
+//
+    fun speakConfirmListening(text: String) {
+        if (!isTtsInitialized) return
+        tts.stop()
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onDone(utteranceId: String?) {
+                Log.d("TTS", "speakConfirmListening: $utteranceId")
+                viewModelScope.launch {
+                    //delay(300)
+                    startConfirmListening()
+                }
+            }
+
+            override fun onStart(utteranceId: String?) {}
+            override fun onError(utteranceId: String?) {}
+        })
+
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "speakConfirm")
+    }
+
+//
+    private fun sendSttConfirmRequest(sttConfirmText: String) {
+        val sttRequest = SttRequest(stt = sttConfirmText)
+
+        RetrofitClient.get_confirm.getConfirm(sttRequest)
+            .enqueue(object : Callback<ConfirmData> {
+                override fun onResponse(call: Call<ConfirmData>, response: Response<ConfirmData>) {
+                    if (response.isSuccessful) {
+                        val confirmData = response.body()
+                        confirmData?.let {
+                            Log.d("STT_CONFIRM", "Confirmation status: ${it.confirm}")
+                            if (it.confirm) {
+                                confirmResult()
+                            }
+                        }
+                    } else {
+                        Log.e("STT_CONFIRM", "Failed to get confirmation: ${response.errorBody()?.string()}")
+                    }
+                }
+
+                override fun onFailure(call: Call<ConfirmData>, t: Throwable) {
+                    Log.e("STT_CONFIRM",  "API call failed: ${t.message}")
+                }
+            })
     }
 
     override fun onCleared() {

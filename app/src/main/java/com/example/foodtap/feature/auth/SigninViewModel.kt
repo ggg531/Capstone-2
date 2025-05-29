@@ -21,7 +21,7 @@ enum class UserStatus {
     UNKNOWN, // 초기 상태
     NEW_USER,
     EXISTING_USER,
-    LOADING_USER_DATA, // 기존 사용자 데이터 로딩 중 상태 추가
+    LOADING_USER_DATA,
     ERROR
 }
 
@@ -50,18 +50,19 @@ class SigninViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    fun checkUserStatus(userId: String) {
+    fun checkUserStatus(userId: String) { // 사용자 상태 확인
         _isLoading.value = true
-        _userStatus.value = UserStatus.UNKNOWN // 상태 초기화
+        _userStatus.value = UserStatus.UNKNOWN
         Log.d("SigninViewModel", "Checking user status for ID: $userId")
 
         RetrofitClient.put_instance.putUser(userId).enqueue(object : Callback<String> {
             override fun onResponse(call: Call<String>, response: Response<String>) {
                 _isLoading.value = false
+
                 if (response.isSuccessful) { // 신규 사용자
                     Log.d("SigninViewModel", "PUT successful (New User). Code: ${response.code()}")
                     _userStatus.value = UserStatus.NEW_USER
-                } else if (response.code() == 409) { // HTTP 409 Conflict - 기존 사용자
+                } else if (response.code() == 409) { // 기존 사용자 (HTTP 409 Conflict)
                     Log.d("SigninViewModel", "PUT failed (Existing User). Code: ${response.code()}")
                     _userStatus.value = UserStatus.EXISTING_USER
                     fetchUserData(userId)
@@ -88,17 +89,17 @@ class SigninViewModel(application: Application) : AndroidViewModel(application),
                 if (response.isSuccessful) {
                     val fetchedUserData = response.body()
                     if (fetchedUserData != null) {
-                        // API로부터 받은 UserData를 FileManager를 통해 저장
-                        FileManager.saveUserData(getApplication(), fetchedUserData)
+                        FileManager.saveUserData(getApplication(), fetchedUserData) // API로부터 받은 UserData 저장
                         Log.d("SigninViewModel", "Successfully fetched and saved UserData: $fetchedUserData")
 
+                        // 사용자 상태 변경 (EXISTING_USER)
                         android.os.Handler(getApplication<Application>().mainLooper).postDelayed({
                             _userStatus.value = UserStatus.EXISTING_USER
                         }, 1000)
-                    } else {
+                    } else { // null
                         Log.e("SigninViewModel", "Fetched UserData is null. Body: ${response.body()}")
-                        // 기존 사용자 프로필 파일이 있다면 삭제하거나, 오류 상태로 처리
-                        // FileManager.deleteUserProfile(getApplication()) // 필요에 따라
+                        // (필요시) 기존 사용자 프로필 파일이 있다면 삭제하거나, 오류 상태로 처리
+                        // FileManager.deleteUserProfile(getApplication())
                         _userStatus.value = UserStatus.ERROR
                     }
                 } else {
