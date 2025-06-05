@@ -32,7 +32,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,6 +60,32 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
     val displayAllergyText by viewModel.displayAllergyText.collectAsStateWithLifecycle()
     val apiCallStatus by viewModel.apiCallStatus.collectAsStateWithLifecycle()
     val saveAllergyStatus by viewModel.saveAllergyStatus.collectAsStateWithLifecycle()
+
+    var readyToNavigate by remember { mutableStateOf(false) }
+    val isTtsDone by viewModel.isTtsDone.collectAsState()
+
+    LaunchedEffect(saveAllergyStatus) {
+        viewModel.saveAllergyStatus.collectLatest { status -> // 최신 상태만 처리 (중복 이동 방지)
+            if (status == ApiStatus.SUCCESS) {
+                viewModel.speakWithCallback("등록되었습니다.")
+                readyToNavigate = true
+            }
+        }
+    }
+
+    LaunchedEffect(isTtsDone) {
+        if (isTtsDone && readyToNavigate) {
+            navController.navigate("camera") {
+                popUpTo("init") { inclusive = true } // 백스택에서 "init" 제거
+                launchSingleTop = true // "my" 중복 방지 (재사용)
+            }
+            readyToNavigate = false
+            /* 성공 후 상태를 IDLE로 되돌려 중복 네비게이션 방지
+            viewModel.resetSaveStatus() // ViewModel에 이런 함수를 만들어서 호출 가능
+            */
+        }
+        // ApiStatus.ERROR에 대한 별도 UI 반응 없음 (에러 처리 X)
+    }
 
     Column(
         modifier = Modifier
@@ -91,22 +121,7 @@ fun InitScreen(navController: NavController, viewModel: InitViewModel = viewMode
         }
     }
 
-    LaunchedEffect(saveAllergyStatus) {
-        viewModel.saveAllergyStatus.collectLatest { status -> // 최신 상태만 처리 (중복 이동 방지)
-            if (status == ApiStatus.SUCCESS) {
-                navController.navigate("my") {
-                    popUpTo("init") { inclusive = true } // 백스택에서 "init" 제거
-                    launchSingleTop = true // "my" 중복 방지 (재사용)
-                }
-                /* 성공 후 상태를 IDLE로 되돌려 중복 네비게이션 방지
-                viewModel.resetSaveStatus() // ViewModel에 이런 함수를 만들어서 호출 가능
-                */
-            }
-            // ApiStatus.ERROR에 대한 별도 UI 반응 없음 (에러 처리 X)
-        }
-    }
-
-    if (showDialog) {
+    if (showDialog || saveAllergyStatus == ApiStatus.SUCCESS) {
         val hasValidResult = apiCallStatus == ApiStatus.SUCCESS && displayAllergyText.isNotBlank() && displayAllergyText != "인식된 알레르기 성분이 없습니다."
         //val noResult = apiCallStatus == ApiStatus.SUCCESS && (displayAllergyText.isBlank() || displayAllergyText == "인식된 알레르기 성분이 없습니다.")
         val dialogTitle = when {

@@ -35,15 +35,12 @@ enum class ApiStatus {
     ERROR
 }
 
-enum class ConfirmApiStatus {
-    IDLE, // 초기 상태
-    SUCCESS,
-    ERROR
-}
-
 class InitViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
+
+    private val _isTtsDone = MutableStateFlow(false)
+    val isTtsDone: StateFlow<Boolean> = _isTtsDone
 
     private val _rawSttText = MutableStateFlow("")
     val rawSttText: StateFlow<String> = _rawSttText.asStateFlow()
@@ -64,9 +61,6 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
 
     private val _apiCallStatus = MutableStateFlow(ApiStatus.IDLE)
     val apiCallStatus: StateFlow<ApiStatus> = _apiCallStatus.asStateFlow()
-
-    private val _confirmApiStatus = MutableStateFlow(ConfirmApiStatus.IDLE)
-    val confirmApiStatus: StateFlow<ConfirmApiStatus> = _confirmApiStatus.asStateFlow()
 
     // 알레르기 저장 API 호출 상태
     private val _saveAllergyStatus = MutableStateFlow(ApiStatus.IDLE)
@@ -173,7 +167,6 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                     sendSttConfirmRequest(confirmresultText) // 등록 여부 반환
                 } else {
                     //_apiCallStatus.value = ApiStatus.ERROR
-                    //_confirmApiStatus.value = confirmApiStatus.ERROR
 
                 }
             }
@@ -182,7 +175,6 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                 _isConfirmListening.value = false
                 Log.e("STT_CONFIRM_ERROR", "Error code: $error")
                 //_apiCallStatus.value = ApiStatus.ERROR
-                //_confirmApiStatus.value = confirmApiStatus.ERROR
             }
 
             override fun onEndOfSpeech() {
@@ -294,7 +286,7 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
             Log.w("API_PUT_ALLERGY_SKIP", "No allergies to save.")
             _saveAllergyStatus.value = ApiStatus.SUCCESS // SUCCESS => "my"로 이동 O
         }
-        _showDialog.value = false
+        //_showDialog.value = false
     }
 
     fun resetResult() {
@@ -314,7 +306,6 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
         if (SpeechRecognizer.isRecognitionAvailable(getApplication())) {
             _isConfirmListening.value = true
             _rawSttConfirmText.value = ""
-            //_confirmApiStatus.value = confirmApiStatus.IDLE // 상태 초기화
             confirmSpeechRecognizer.startListening(confirmRecognizerIntent)
             viewModelScope.launch {
                 //speak("등록?", "startListening")
@@ -368,6 +359,22 @@ class InitViewModel(application: Application) : AndroidViewModel(application), T
                     Log.e("STT_CONFIRM",  "API call failed: ${t.message}")
                 }
             })
+    }
+
+    fun speakWithCallback(text: String, utteranceId: String = "init_done") {
+        if (isTtsInitialized) {
+            _isTtsDone.value = false
+            tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+
+                override fun onDone(utteranceId: String?) {
+                    _isTtsDone.value = true
+                }
+
+                override fun onError(utteranceId: String?) {}
+            })
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+        }
     }
 
     override fun onCleared() {

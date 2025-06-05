@@ -3,14 +3,13 @@ package com.example.foodtap.feature.user
 import android.app.Application
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodtap.api.ExpiData
 import com.example.foodtap.api.RetrofitClient
-import com.example.foodtap.api.SttResponse
 import com.example.foodtap.api.UserData
-import com.example.foodtap.feature.init.ApiStatus
 import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +23,9 @@ import java.util.Locale
 class MyViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech = TextToSpeech(application, this)
     private var isTtsInitialized = false
+
+    private val _isTtsDone = MutableStateFlow(false)
+    val isTtsDone: StateFlow<Boolean> = _isTtsDone
 
     private val _userExp = MutableStateFlow(5)
     val userExp: StateFlow<Int> = _userExp
@@ -71,6 +73,22 @@ class MyViewModel(application: Application) : AndroidViewModel(application), Tex
     fun stopSpeaking() {
         if (isTtsInitialized) {
             tts.stop()
+        }
+    }
+
+    fun speakWithCallback(text: String, utteranceId: String = "exp_done") {
+        if (isTtsInitialized) {
+            _isTtsDone.value = false
+            tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+
+                override fun onDone(utteranceId: String?) {
+                    _isTtsDone.value = true
+                }
+
+                override fun onError(utteranceId: String?) {}
+            })
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
         }
     }
 
