@@ -26,3 +26,13 @@ data class ExpiData(
 data class ConfirmData(
     val confirm: Boolean
 )
+
+data class UserHist(
+    val id: String,
+    val allergy: String,
+    val product_name: String
+)
+
+data class ProductNameRequest(
+    val product_name: String
+)

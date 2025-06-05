@@ -98,4 +98,22 @@ object RetrofitClient {
             .build()
             .create(Stt2ExpiDataService::class.java)
     }
+
+    val putHist: PutHistService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().build())
+            .build()
+            .create(PutHistService::class.java)
+    }
+
+    val getHist: GetHistService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().build())
+            .build()
+            .create(GetHistService::class.java)
+    }
 }

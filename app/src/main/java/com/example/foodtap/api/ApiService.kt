@@ -84,3 +84,18 @@ interface Stt2ExpiDataService {
         @Body request: SttRequest
     ): Call<ExpiData>
 }
+
+interface PutHistService {
+    @POST("/hist")
+    fun putHist(
+        @Body request: UserHist
+    ): Call<String>
+}
+
+interface GetHistService {
+    @POST("/hist/getbyproduct/{id}")
+    fun getHist(
+        @Path("id") id: String,
+        @Body request: ProductNameRequest
+    ): Call<List<UserHist>>
+}
