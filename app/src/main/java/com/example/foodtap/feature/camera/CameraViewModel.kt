@@ -2,6 +2,9 @@ package com.example.foodtap.feature.camera
 
 import android.app.Application
 import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -45,6 +48,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
 
     private val _elapsedTimeMillis = MutableStateFlow(0L) // 경과 시간 (밀리초)
     private var timerJob: Job? = null // 타이머 코루틴 Job
+    private var hapticJob: Job? = null
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -74,11 +78,20 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     fun startScanTimer() {
         stopScanTimer() // 기존 타이머 중지
         _elapsedTimeMillis.value = 0L // 타이머 초기화
+        val context = getApplication<Application>()
+
         timerJob = viewModelScope.launch {
             val startTime = System.currentTimeMillis()
             while (true) {
                 _elapsedTimeMillis.value = System.currentTimeMillis() - startTime
                 delay(100) // 0.1초마다 업데이트
+            }
+        }
+
+        hapticJob = viewModelScope.launch {
+            while (true) {
+                vibrateOnce(context)
+                delay(3000) // 1초마다 햅틱
             }
         }
     }
@@ -88,6 +101,22 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         timerJob?.cancel()
         timerJob = null
         _elapsedTimeMillis.value = 0L
+
+        hapticJob?.cancel()
+        hapticJob = null
+    }
+
+    private fun vibrateOnce(context: Context) {
+        val vibrator = context.getSystemService(Vibrator::class.java)
+        if (vibrator != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val vibrationEffect = VibrationEffect.createOneShot(150, 200) // 150ms, 강도 200
+                vibrator.vibrate(vibrationEffect)
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(150)
+            }
+        }
     }
 
     // OcrAnalyzer로부터 직접 OcrResponse 객체를 받는 함수

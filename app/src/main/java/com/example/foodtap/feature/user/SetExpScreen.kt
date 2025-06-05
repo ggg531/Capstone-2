@@ -13,6 +13,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,11 +40,23 @@ import kotlinx.coroutines.delay
 fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
     val context = LocalContext.current.applicationContext
     val userData = remember { FileManager.loadUserData(context) }
+
     var count by remember { mutableStateOf(userData?.expi_date?.toIntOrNull() ?: 5) }
+    var readyToNavigate by remember { mutableStateOf(false) }
+    val isTtsDone by viewModel.isTtsDone.collectAsState()
 
     LaunchedEffect(Unit) {
         delay(500)
         viewModel.speak("소비 기한을 변경하고, 중간에 있는 버튼을 클릭하세요.")
+    }
+
+    LaunchedEffect(isTtsDone) {
+        if (isTtsDone && readyToNavigate) {
+            navController.navigate("my") {
+                popUpTo("setexp") { inclusive = true }
+            }
+            readyToNavigate = false
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -94,10 +107,9 @@ fun SetExpScreen(navController: NavController, viewModel: MyViewModel = viewMode
             onClick = {
                 viewModel.confirmResult(count) { success ->
                     if (success) {
-                        viewModel.speak("변경되었습니다.") //
-                        navController.navigate("my") {
-                            popUpTo("setexp") { inclusive = true }
-                        }
+                        viewModel.stopSpeaking()
+                        viewModel.speakWithCallback("소비기한이 ${count}일로 변경되었습니다.")
+                        readyToNavigate = true
                     } else {
                         viewModel.speak("소비기한 정보를 다시 등록하세요.")
                     }

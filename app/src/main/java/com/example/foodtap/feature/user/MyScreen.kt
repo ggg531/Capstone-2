@@ -32,19 +32,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.foodtap.api.UserData
 import com.example.foodtap.ui.theme.Main
 import com.example.foodtap.ui.theme.Show
 import kotlinx.coroutines.delay
-import com.example.foodtap.api.UserData
 import com.example.foodtap.util.FileManager
 
 @Composable
 fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
     val context = LocalContext.current
+    var confirmedExp by remember { mutableStateOf(emptyList<Pair<String, Int>>()) }
     var userData by remember { mutableStateOf<UserData?>(null) }
 
     val userAllergyDisplay = userData?.allergy
@@ -60,10 +62,11 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
     val userExpDisplay = userData?.expi_date?.takeIf { it.isNotBlank() }?.let { "$it 일" } ?: "미설정"
 
     LaunchedEffect(Unit) {
+        confirmedExp = FileManager.loadConfirmedExpiration(context)
         userData = FileManager.loadUserData(context)
+
         delay(500)
         viewModel.speak("마이 페이지입니다.")
-        //viewModel.speak("마이 페이지입니다. 진한 파란색 버튼을 클릭하면 구매 기준을 변경할 수 있고, 가장 아래 버튼을 클릭하면 촬영 페이지로 이동합니다.")
     }
 
     Column(
@@ -75,7 +78,9 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -101,25 +106,30 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = "최소 소비 기한",
+                    text = "구매 식품 관리",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
                     modifier = Modifier.padding(start = 8.dp)
-
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = {
                         viewModel.stopSpeaking()
-                        navController.navigate("setexp")
+                        navController.navigate("myfood")
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
                     modifier = Modifier.size(width = 360.dp, height = 80.dp)
                 ) {
                     Text(
-                        text = userExpDisplay,
+                        text = if (confirmedExp.isEmpty()) {
+                            "구매 식품 관리"
+                        } else {
+                            val (exp, dDay) = confirmedExp.first()
+                            val dDayStr = if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
+                            "$exp ($dDayStr)"
+                        },
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
@@ -135,7 +145,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = "알레르기 주의 성분",
+                    text = "구매 기준 변경",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.Black,
@@ -146,17 +156,19 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                 Button(
                     onClick = {
                         viewModel.stopSpeaking()
-                        navController.navigate("init")
+                        navController.navigate("setcri")
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Main),
-                    modifier = Modifier.size(width = 360.dp, height = 80.dp)
+                    modifier = Modifier.size(width = 360.dp, height = 110.dp)
                 ) {
                     Text(
-                        text = userAllergyDisplay,
+                        text = "$userExpDisplay\n$userAllergyDisplay",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
+                        lineHeight = 40.sp,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.semantics { contentDescription = "" }
                     )
                 }
@@ -172,7 +184,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
             colors = ButtonDefaults.buttonColors(containerColor = Show),
             modifier = Modifier
                 .padding(bottom = 80.dp)
-                .size(width = 330.dp, height = 100.dp)
+                .size(width = 330.dp, height = 110.dp)
                 .border(3.dp, Color.Black, RoundedCornerShape(16.dp))
         ) {
             Icon(

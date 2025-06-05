@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.foodtap.feature.auth.SigninScreen
 import com.example.foodtap.feature.camera.CameraPermission
 import com.example.foodtap.feature.init.InitScreen
+import com.example.foodtap.feature.user.MyFoodScreen
 import com.example.foodtap.feature.user.MyScreen
 import com.example.foodtap.feature.user.SetCriteriaScreen
 import com.example.foodtap.feature.user.SetExpScreen
@@ -26,7 +27,7 @@ fun MainApp() {
 
     Scaffold(
         topBar = {
-            if (currentRoute in listOf("my")) {
+            if (currentRoute in listOf("my", "setcri", "myfood")) {
                 TopBar(navController)
             }
         },
@@ -47,8 +48,9 @@ fun MainApp() {
             composable("init") { InitScreen(navController) }
             composable("camera") { CameraPermission(navController) }
             composable("my") { MyScreen(navController) }
+            composable("myfood") { MyFoodScreen(navController) }
+            composable("setcri") { SetCriteriaScreen(navController) }
             composable("setexp") { SetExpScreen(navController) }
-            //composable("setcri") { SetCriteriaScreen(navController) }
         }
     }
 }
