@@ -131,8 +131,9 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
             val allergy = ocrResponse.allergy
             val desc = ocrResponse.desc
             val expiration = ocrResponse.expiration
+            val product_name = ocrResponse.product_name
 
-            Log.d("CameraViewModel", "Handling processed OCR response: approval=$approval, allergy=$allergy, desc=$desc, expiration=$expiration")
+            Log.d("CameraViewModel", "Handling processed OCR response: approval=$approval, allergy=$allergy, desc=$desc, expiration=$expiration, p_name=$product_name")
 
             val currentTimeElapsed = _elapsedTimeMillis.value // 현재 경과 시간
             val tenSecondsThreshold = 10000L //
