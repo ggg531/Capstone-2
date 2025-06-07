@@ -80,10 +80,10 @@ object FileManager {
     }
 
     // 소비기한 저장 함수
-    fun saveConfirmedExpiration(context: Context, expiration: String, dDay: Int) {
+    fun saveConfirmedExpiration(context: Context, productName: String, expiration: String, dDay: Int) {
         val file = File(context.filesDir, "confirmed_expiration.txt")
         try {
-            val content = "$expiration|$dDay\n" // 소비기한|dDay
+            val content = "$productName|$expiration|$dDay\n" // 식품명|소비기한|dDay
             file.appendText(content)
             Log.d("FileManager", "Confirmed expiration saved: $content")
         } catch (e: IOException) {
@@ -92,33 +92,36 @@ object FileManager {
     }
 
     // 소비기한 불러오기 함수 (정렬)
-    fun loadConfirmedExpiration(context: Context): List<Pair<String, Int>> {
+    fun loadConfirmedExpiration(context: Context): List<Triple<String, String, Int>> {
         val file = File(context.filesDir, "confirmed_expiration.txt")
         if (!file.exists()) return emptyList()
 
         return file.readLines()
             .mapNotNull { line ->
                 val parts = line.split("|")
-                if (parts.size == 2) {
-                    val exp = parts[0].trim()
-                    val dDay = parts[1].trim().toIntOrNull()
-                    if (exp.isNotBlank() && dDay != null) exp to dDay else null
+                if (parts.size == 3) {
+                    val productName = parts[0].trim()
+                    val exp = parts[1].trim()
+                    val dDay = parts[2].trim().toIntOrNull()
+                    if (exp.isNotBlank() && dDay != null)
+                        Triple(productName, exp, dDay)
+                    else null
                 } else null
             }
-            .sortedBy { it.second }
+            .sortedBy { it.third }
     }
 
     // 소비기한 삭제 함수
-    fun deleteConfirmedExpiration(context: Context, target: Pair<String, Int>) {
+    fun deleteConfirmedExpiration(context: Context, target: Triple<String, String, Int>) {
         val file = File(context.filesDir, "confirmed_expiration.txt")
         if (!file.exists()) return
 
         val updatedLines = file.readLines()
-            .filterNot { it.trim() == "${target.first}|${target.second}" }
+            .filterNot { it.trim() == "${target.first}|${target.second}|${target.third}" }
 
         try {
             file.writeText(updatedLines.joinToString("\n") + "\n")
-            Log.d("FileManager", "Deleted confirmed expiration: ${target.first}|${target.second}")
+            Log.d("FileManager", "Deleted confirmed expiration: ${target.first}|${target.second}|${target.third}")
         } catch (e: IOException) {
             Log.e("FileManager", "Error deleting confirmed expiration: ${e.message}", e)
         }

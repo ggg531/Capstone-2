@@ -53,10 +53,12 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
+    val identifiedProductName by viewModel.identifiedProductName.collectAsStateWithLifecycle()
     val identifiedAllergy by viewModel.identifiedAllergy.collectAsStateWithLifecycle()
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
     val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
     val dDay by viewModel.dDayExp.collectAsStateWithLifecycle()
+    val isButtonEnabled = identifiedExpiration.isNotBlank() && dDay != null
 
     val ocrAnalyzer = remember {
         OcrAnalyzer(executor = executor) { ocrResponse ->
@@ -161,7 +163,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             val vibrator = context.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val vibrationEffect = if (isSafeForVibrationAndColor) { // 안전한 경우: 150ms, 세기 200
-                    VibrationEffect.createOneShot(150, 200) //
+                    VibrationEffect.createOneShot(150, 200)
                 } else { // 위험한 경우: 250ms, 세기 255 (햅틱 2회)
                     VibrationEffect.createWaveform(longArrayOf(0, 250, 50, 250), intArrayOf(0, 255, 0, 255), -1)
                 }
@@ -197,6 +199,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
             text = {
                 Box(
                     modifier = Modifier
+                        .width(300.dp)
                         .height(200.dp)
                         .clickable {
                             val listen = buildString {
@@ -270,11 +273,13 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             if (identifiedExpiration.isNotBlank() && dDay != null) {
                                 FileManager.saveConfirmedExpiration(
                                     context = context,
+                                    productName = identifiedProductName,
                                     expiration = identifiedExpiration,
                                     dDay = dDay!!
                                 )
                             }
                         },
+                        enabled = isButtonEnabled,
                         shape = RoundedCornerShape(16.dp),
                         colors =  ButtonDefaults.buttonColors(containerColor = Main),
                         modifier = Modifier.size(width = 360.dp, height = 80.dp)
