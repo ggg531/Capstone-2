@@ -31,42 +31,6 @@ import retrofit2.Response
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val userId = "58442700"
-        val productNameRequest = ProductNameRequest("참크래커")
-        val userHist = UserHist(userId, "[조개류]", "참크래커") //
-//        RetrofitClient.putHist.putHist(userHist) //
-//            .enqueue(object : Callback<String> { //
-//                override fun onResponse(call: Call<String>, response: Response<String>) {
-//                    if (response.isSuccessful) {
-//                        val message = response.body() //
-//                        Log.d("MA_TEXT", "Confirmation status: $message") //
-//                    } else {
-//                        Log.e("MA_TEXT", "Failed to get confirmation: ${response.errorBody()?.string()}")
-//                    }
-//                }
-//
-//                override fun onFailure(call: Call<String>, t: Throwable) {
-//                    Log.e("MA_TEXT", "API call failed: ${t.message}")
-//                }
-//            })
-
-        RetrofitClient.getHist.getHist(userId, productNameRequest) //
-            .enqueue(object : Callback<List<UserHist>> { //
-                override fun onResponse(call: Call<List<UserHist>>, response: Response<List<UserHist>>) {
-                    if (response.isSuccessful) {
-                        val userHistList = response.body()
-                        Log.d("MA_TEXT", "userHistList successfully: $userHistList")
-                    } else {
-                        Log.e("MA_TEXT", "Failed userHistList: ${response.errorBody()?.string()}")
-                    }
-                }
-
-                override fun onFailure(call: Call<List<UserHist>>, t: Throwable) {
-                    Log.e("MA_TEXT", "API call failed: ${t.message}")
-                }
-            })
-
         enableEdgeToEdge()
         setContent {
             FoodTapTheme {

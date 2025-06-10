@@ -11,7 +11,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope // viewModelScope import 추가
 import com.example.foodtap.api.OcrRequest
 import com.example.foodtap.api.OcrResponse
+import com.example.foodtap.api.ProductNameRequest
 import com.example.foodtap.api.RetrofitClient
+import com.example.foodtap.api.UserHist
 import com.example.foodtap.util.FileManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -40,8 +42,14 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _dDayExp = MutableStateFlow<Int?>(null)
     val dDayExp: StateFlow<Int?> = _dDayExp
 
+    private val _identifiedProductName = MutableStateFlow("")
+    val identifiedProductName: StateFlow<String> = _identifiedProductName
+
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
+
+    private val _isSafeCalculated = MutableStateFlow(false)
+    val isSafeCalculated: StateFlow<Boolean> = _isSafeCalculated
 
     private var tts: TextToSpeech = TextToSpeech(application, this)
     private var isTtsInitialized = false
@@ -138,6 +146,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
             val currentTimeElapsed = _elapsedTimeMillis.value // 현재 경과 시간
             val tenSecondsThreshold = 10000L //
 
+
             if (approval) { // 식품 정보 업데이트
                 _identifiedAllergy.value = _identifiedAllergy.value.union(allergy).toList() // 알레르기 성분 리스트
                 if (expiration.isNotEmpty() && _dDayExp.value == null) {
@@ -146,10 +155,46 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
                 }
                 _identifiedDesc.value = desc // 상세 정보 설명
                 Log.d("CameraViewModel", "Identified exp: ${_identifiedExpiration.value}, Identified dDay: ${dDayExp.value}")
+                _identifiedProductName.value = product_name // 식품명
+                Log.d("CameraViewModel", "Identified product name: ${_identifiedProductName.value}")
 
-                val isSafeCalculated = expFiltering(getApplication()) && allergyFiltering(getApplication())
+                var userHistList : List<UserHist>? = null
+                if (product_name.isNotBlank()) {
+                    val userId = FileManager.loadUserData(getApplication())?.id
+                    val productNameRequest = ProductNameRequest(product_name)
 
-                if (!isSafeCalculated) { // 위험한 경우: 즉시 팝업 표시
+                    if (userId != null) {
+                        RetrofitClient.getHist.getHist(userId, productNameRequest) //
+                            .enqueue(object : Callback<List<UserHist>> { //
+                                override fun onResponse(call: Call<List<UserHist>>, response: Response<List<UserHist>>) {
+                                    if (response.isSuccessful) {
+                                        userHistList = response.body()
+                                        Log.d("MA_TEXT", "userHistList successfully: $userHistList")
+
+                                        if (!userHistList.isNullOrEmpty()) {  // 구매기록이 있는 경우 안전하다고 판단하고 바로 팝업
+                                            _isSafeCalculated.value = true
+                                            _showDialog.value = true
+                                            _isScanning.value = false
+                                            stopScanTimer()
+                                        }
+                                    } else {
+                                        Log.e("MA_TEXT", "Failed userHistList: ${response.errorBody()?.string()}")
+                                    }
+                                }
+
+                                override fun onFailure(call: Call<List<UserHist>>, t: Throwable) {
+                                    Log.e("MA_TEXT", "API call failed: ${t.message}")
+                                }
+                            })
+                    }
+
+                }
+
+
+
+                _isSafeCalculated.value = expFiltering(getApplication()) && allergyFiltering(getApplication())
+
+                if (!_isSafeCalculated.value) { // 위험한 경우: 즉시 팝업 표시
                     _showDialog.value = true
                     _isScanning.value = false
                     stopScanTimer()
@@ -162,7 +207,10 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
                         Log.d("CameraViewModel", "Safe result, but less than 10s elapsed. Not showing dialog yet.")
                     }
                 }
-            } else { // approval == false: 팝업 표시 X (계속 스캔)
+
+
+
+            } else {  // approval == false: 팝업 표시 X (계속 스캔)
                 Log.d("CameraViewModel", "Approval denied or incomplete result from processed OCR.")
             }
         } else { // null
@@ -175,10 +223,10 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         _isScanning.value = true
         _showDialog.value = false
         // 이전 인식 결과 초기화
-        //_identifiedAllergy.value = emptyList()
+        _identifiedAllergy.value = emptyList()
         _identifiedDesc.value = ""
-        //_identifiedExpiration.value = ""
-        //_dDayExp.value = null
+        _identifiedExpiration.value = ""
+        _dDayExp.value = null
         startScanTimer()
     }
 
@@ -240,5 +288,28 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         }
 
         return true
+    }
+
+    fun putUserHist(productName: String, allergy: List<String>, context: Context) {
+        val userData = FileManager.loadUserData(context)
+        val userHist = userData?.let { UserHist(it.id, allergy.toString(), productName) } //
+
+        if (userHist != null) {
+            RetrofitClient.putHist.putHist(userHist) //
+                .enqueue(object : Callback<String> { //
+                    override fun onResponse(call: Call<String>, response: Response<String>) {
+                        if (response.isSuccessful) {
+                            val message = response.body() //
+                            Log.d("MA_TEXT", "Confirmation status: $message") //
+                        } else {
+                            Log.e("MA_TEXT", "Failed to get confirmation: ${response.errorBody()?.string()}")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<String>, t: Throwable) {
+                        Log.e("MA_TEXT", "API call failed: ${t.message}")
+                    }
+                })
+        }
     }
 }
