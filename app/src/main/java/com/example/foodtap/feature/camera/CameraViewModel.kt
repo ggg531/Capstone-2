@@ -30,6 +30,9 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
     private val _isScanning = MutableStateFlow(true)
     val isScanning: StateFlow<Boolean> = _isScanning
 
+    private val _identifiedProductName = MutableStateFlow("")
+    val identifiedProductName: StateFlow<String> = _identifiedProductName
+
     private val _identifiedAllergy = MutableStateFlow<List<String>>(emptyList())
     val identifiedAllergy: StateFlow<List<String>> = _identifiedAllergy
 
@@ -41,9 +44,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
 
     private val _dDayExp = MutableStateFlow<Int?>(null)
     val dDayExp: StateFlow<Int?> = _dDayExp
-
-    private val _identifiedProductName = MutableStateFlow("")
-    val identifiedProductName: StateFlow<String> = _identifiedProductName
 
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog

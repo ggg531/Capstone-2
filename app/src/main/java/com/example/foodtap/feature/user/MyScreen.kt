@@ -46,7 +46,7 @@ import com.example.foodtap.util.FileManager
 @Composable
 fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel()) {
     val context = LocalContext.current
-    var confirmedExp by remember { mutableStateOf(emptyList<Pair<String, Int>>()) }
+    var confirmedExp by remember { mutableStateOf(emptyList<Triple<String, String, Int>>()) }
     var userData by remember { mutableStateOf<UserData?>(null) }
 
     val userAllergyDisplay = userData?.allergy
@@ -126,7 +126,7 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                         text = if (confirmedExp.isEmpty()) {
                             "구매 식품 관리"
                         } else {
-                            val (exp, dDay) = confirmedExp.first()
+                            val (_, exp, dDay) = confirmedExp.first()
                             val dDayStr = if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
                             "$exp ($dDayStr)"
                         },
