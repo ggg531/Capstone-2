@@ -110,7 +110,7 @@ fun MyFoodScreen(navController: NavController, viewModel: MyViewModel = viewMode
                 itemsIndexed(confirmedExp) { index, (productName, expiration, dDay) ->
                     val dDayStr = if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
                     val displayText = if (productName.isNotBlank())
-                        "$productName | $expiration ($dDayStr)"
+                        "$productName | $dDayStr"
                     else
                         "$expiration ($dDayStr)"
 

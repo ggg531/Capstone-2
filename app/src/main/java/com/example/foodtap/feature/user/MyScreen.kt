@@ -112,7 +112,9 @@ fun MyScreen(navController: NavController, viewModel: MyViewModel = viewModel())
                     color = Color.Black,
                     modifier = Modifier.padding(start = 8.dp)
                 )
+
                 Spacer(modifier = Modifier.height(12.dp))
+
                 Button(
                     onClick = {
                         viewModel.stopSpeaking()
