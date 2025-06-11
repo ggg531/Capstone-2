@@ -51,6 +51,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
 
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val showDialog by viewModel.showDialog.collectAsStateWithLifecycle()
+    val isSafeCalculated by viewModel.isSafeCalculated.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
     val identifiedProductName by viewModel.identifiedProductName.collectAsStateWithLifecycle()
@@ -157,12 +158,11 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     }
 
     if (showDialog) {
-        val isSafeForVibrationAndColor = viewModel.expFiltering(context) && viewModel.allergyFiltering(context)
 
         LaunchedEffect(showDialog) {
             val vibrator = context.getSystemService(Vibrator::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val vibrationEffect = if (isSafeForVibrationAndColor) { // 안전한 경우: 150ms, 세기 200
+                val vibrationEffect = if (isSafeCalculated) { // 안전한 경우: 150ms, 세기 200
                     VibrationEffect.createOneShot(150, 200)
                 } else { // 위험한 경우: 250ms, 세기 255 (햅틱 2회)
                     VibrationEffect.createWaveform(longArrayOf(0, 250, 50, 250), intArrayOf(0, 255, 0, 255), -1)
@@ -170,10 +170,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                 vibrator?.vibrate(vibrationEffect)
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(if (isSafeForVibrationAndColor) 150 else 200)
+                vibrator?.vibrate(if (isSafeCalculated) 150 else 200)
             }
 
-            if (isSafeForVibrationAndColor) {
+            if (isSafeCalculated) {
                 viewModel.speak("안전한 식품입니다.")
             } else {
                 viewModel.speak("구매에 적합하지 않은 식품입니다.")
@@ -181,7 +181,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
         }
 
         AlertDialog(
-            containerColor = if (isSafeForVibrationAndColor) Safe else Unsafe,
+            containerColor = if (isSafeCalculated) Safe else Unsafe,
             title = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -269,6 +269,10 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
                             viewModel.stopSpeaking()
                             viewModel.speak("구매가 확정되었습니다.")
                             viewModel.resetScan() // ViewModel에서 스캔 재개 및 타이머 초기화
+
+                            if (identifiedProductName.isNotBlank() && identifiedAllergy.isNotEmpty()) {  // 유저 구매 기록 DB에 저장
+                                viewModel.putUserHist(identifiedProductName, identifiedAllergy, context)
+                            }
 
                             if (identifiedExpiration.isNotBlank() && dDay != null) {
                                 FileManager.saveConfirmedExpiration(
