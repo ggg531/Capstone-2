@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -109,10 +110,7 @@ fun MyFoodScreen(navController: NavController, viewModel: MyViewModel = viewMode
 
                 itemsIndexed(confirmedExp) { index, (productName, expiration, dDay) ->
                     val dDayStr = if (dDay >= 0) "D-$dDay" else "D+${-dDay}"
-                    val displayText = if (productName.isNotBlank())
-                        "$productName | $dDayStr"
-                    else
-                        "$expiration ($dDayStr)"
+                    val displayText = "$productName | $dDayStr\n $expiration"
 
                     val fraction = index.toFloat() / maxIndex
                     val r = (214 + (255 - 214) * fraction).toInt()
@@ -136,13 +134,15 @@ fun MyFoodScreen(navController: NavController, viewModel: MyViewModel = viewMode
                             colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
                             modifier = Modifier
                                 .padding(bottom = 12.dp)
-                                .size(width = 360.dp, height = 80.dp)
+                                .size(width = 360.dp, height = 100.dp)
                         ) {
                             Text(
                                 text = displayText,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color.White,
+                                lineHeight = 40.sp,
+                                textAlign = TextAlign.Center,
                                 modifier = Modifier.semantics { contentDescription = displayText }
                             )
                         }

@@ -59,7 +59,7 @@ fun CameraScreen(navController: NavController, viewModel: CameraViewModel = view
     val identifiedDesc by viewModel.identifiedDesc.collectAsStateWithLifecycle()
     val identifiedExpiration by viewModel.identifiedExpiration.collectAsStateWithLifecycle()
     val dDay by viewModel.dDayExp.collectAsStateWithLifecycle()
-    val isButtonEnabled = identifiedExpiration.isNotBlank() && dDay != null
+    val isButtonEnabled = identifiedProductName.isNotBlank() && identifiedExpiration.isNotBlank() && dDay != null
 
     val ocrAnalyzer = remember {
         OcrAnalyzer(executor = executor) { ocrResponse ->
