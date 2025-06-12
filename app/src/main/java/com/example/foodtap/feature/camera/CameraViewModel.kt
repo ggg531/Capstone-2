@@ -155,7 +155,11 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
                 }
                 _identifiedDesc.value = desc // 상세 정보 설명
                 Log.d("CameraViewModel", "Identified exp: ${_identifiedExpiration.value}, Identified dDay: ${dDayExp.value}")
-                _identifiedProductName.value = product_name // 식품명
+
+                if (_identifiedProductName.value.isBlank()) {
+                    _identifiedProductName.value = product_name // 식품명
+                }
+
                 Log.d("CameraViewModel", "Identified product name: ${_identifiedProductName.value}")
 
                 var userHistList : List<UserHist>? = null
@@ -227,6 +231,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application),
         _identifiedDesc.value = ""
         _identifiedExpiration.value = ""
         _dDayExp.value = null
+        _identifiedProductName.value = ""
         startScanTimer()
     }
 
