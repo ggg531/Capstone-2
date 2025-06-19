@@ -113,9 +113,9 @@ fun MyFoodScreen(navController: NavController, viewModel: MyViewModel = viewMode
                     val displayText = "$productName | $dDayStr\n $expiration"
 
                     val fraction = index.toFloat() / maxIndex
-                    val r = (214 + (255 - 214) * fraction).toInt()
-                    val g = (40 + (255 - 40) * fraction).toInt()
-                    val b = (40 + (255 - 40) * fraction).toInt()
+                    val r = (198 + (248 - 198) * fraction).toInt()
+                    val g = (40 + (187 - 40) * fraction).toInt()
+                    val b = (40 + (194 - 40) * fraction).toInt()
                     val buttonColor = Color(r, g, b)
 
                     Row(
